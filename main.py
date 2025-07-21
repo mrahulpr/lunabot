@@ -1,6 +1,5 @@
 import os
 import importlib
-import asyncio
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
@@ -47,7 +46,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
     if data == "main_menu":
-        return await start(update, context)
+        await start(update, context)
     elif data == "info":
         await query.edit_message_text("ℹ️ This bot is designed to auto-load plugins and stay online via GitHub.")
     elif data == "help":
@@ -59,12 +58,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="help")]]
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def main():
+def main():
     load_plugins()
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
-    await app.run_polling()
+    app.run_polling()  # ✅ no need for asyncio.run()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
