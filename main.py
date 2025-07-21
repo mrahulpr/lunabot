@@ -1,53 +1,70 @@
 import os
 import importlib
-import traceback
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+import asyncio
 from dotenv import load_dotenv
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-OWNER_ID = int(os.getenv("OWNER_ID"))
 
-app = ApplicationBuilder().token(TOKEN).build()
+PLUGINS = {}
 
-# Load plugins dynamically
-for filename in os.listdir("plugins"):
-    if filename.endswith(".py"):
-        module_name = filename[:-3]
-        module = importlib.import_module(f"plugins.{module_name}")
-        for command in module.commands:
-            app.add_handler(CommandHandler(command, module.handle))
-        if hasattr(module, "callback"):
-            app.add_handler(CallbackQueryHandler(module.callback))
+def load_plugins():
+    global PLUGINS
+    PLUGINS.clear()
+    plugin_dir = "plugins"
+    for file in os.listdir(plugin_dir):
+        if file.endswith(".py") and file != "__init__.py":
+            name = file[:-3]
+            module = importlib.import_module(f"{plugin_dir}.{name}")
+            if hasattr(module, "get_info"):
+                PLUGINS[name] = module.get_info()
 
-async def start(update, context):
-    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-    keyboard = [[
-        InlineKeyboardButton("ℹ️ Info", callback_data="info"),
-        InlineKeyboardButton("❓ Help", callback_data="help")
-    ]]
-    await update.message.reply_text("👋 Welcome to the Bot!", reply_markup=InlineKeyboardMarkup(keyboard))
+def build_help_keyboard():
+    keyboard = [
+        [InlineKeyboardButton(f"🔹 {info['name']}", callback_data=f"plugin_{key}")]
+        for key, info in PLUGINS.items()
+    ]
+    if not keyboard:
+        keyboard = [[InlineKeyboardButton("⛔ No plugins available", callback_data="none")]]
+    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="main_menu")])
+    return InlineKeyboardMarkup(keyboard)
 
-async def handle_start_callback(update, context):
-    try:
-        query = update.callback_query
-        await query.answer()
-        if query.data == "info":
-            await query.edit_message_text("ℹ️ This is your personal assistant bot.")
-        elif query.data == "help":
-            await query.edit_message_text(
-                """Here are the features:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [
+            InlineKeyboardButton("ℹ️ Info", callback_data="info"),
+            InlineKeyboardButton("🆘 Help", callback_data="help")
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("👋 Welcome! I am your modular bot.", reply_markup=reply_markup)
 
-/restart - Restart bot (owner only)
-/echo - Repeat your message
-/calc - Open calculator with buttons"""
-            )
-    except Exception as e:
-        print("Error in callback:")
-        traceback.print_exc()
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(handle_start_callback, pattern="^(info|help)$"))
+    if data == "main_menu":
+        return await start(update, context)
+    elif data == "info":
+        await query.edit_message_text("ℹ️ This bot is designed to auto-load plugins and stay online via GitHub.")
+    elif data == "help":
+        await query.edit_message_text("🧩 Available plugins:", reply_markup=build_help_keyboard())
+    elif data.startswith("plugin_"):
+        plugin_key = data.split("_", 1)[1]
+        plugin_info = PLUGINS.get(plugin_key, {})
+        text = plugin_info.get("description", "No description.")
+        keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="help")]]
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-print("Bot running...")
-app.run_polling()
+async def main():
+    load_plugins()
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+    await app.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
