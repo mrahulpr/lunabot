@@ -2,34 +2,31 @@ name: Run Telegram Bot
 
 on:
   schedule:
-    - cron: "*/15 * * * *"  # Runs every 15 minutes
-  workflow_dispatch:        # Manual run support
+    - cron: "*/15 * * * *"  # Run every 15 minutes
+  workflow_dispatch:        # Allow manual trigger from GitHub UI
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📦 Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python 3.10
+      - name: Set up Python "3.10"
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - name: 📥 Install dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 🚀 Run Telegram Bot
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          OWNER_ID: ${{ secrets.OWNER_ID }}
+      - name: Create .env file
         run: |
-          echo "Starting bot at $(date)"
-          python main.py || echo "❌ Bot crashed with exit code $?"
-          
-      - name: ✅ Confirm Workflow Finished
-        run: echo "Bot run completed at $(date)"
+          echo BOT_TOKEN=${{ secrets.BOT_TOKEN }} >> .env
+          echo OWNER_ID=${{ secrets.OWNER_ID }} >> .env
+
+      - name: Run the bot
+        run: python main.py
