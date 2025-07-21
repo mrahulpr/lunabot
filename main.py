@@ -1,15 +1,21 @@
 import os
 import importlib
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
+    ContextTypes
+)
 from dotenv import load_dotenv
 
+# Load env vars
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-OWNER_ID = os.getenv("OWNER_ID")
+OWNER_ID = int(os.getenv("OWNER_ID", "0"))  # Make sure it's an integer
 
+# Build the app
 app = ApplicationBuilder().token(TOKEN).build()
 
-# Load plugins dynamically
+# Load plugins from plugins folder
 for filename in os.listdir("plugins"):
     if filename.endswith(".py"):
         module_name = filename[:-3]
@@ -19,15 +25,19 @@ for filename in os.listdir("plugins"):
         if hasattr(module, "callback"):
             app.add_handler(CallbackQueryHandler(module.callback))
 
-async def start(update, context):
-    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+# /start command
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[
         InlineKeyboardButton("ℹ️ Info", callback_data="info"),
         InlineKeyboardButton("❓ Help", callback_data="help")
     ]]
-    await update.message.reply_text("👋 Welcome to the Bot!", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        "👋 Welcome to the Bot!",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
-async def handle_start_callback(update, context):
+# Handle /start buttons
+async def handle_start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     if query.data == "info":
@@ -40,8 +50,10 @@ async def handle_start_callback(update, context):
             "/calc - Open calculator with buttons"
         )
 
+# Add /start and callback handlers
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(handle_start_callback, pattern="^(info|help)$"))
 
-print("Bot running...")
+# Confirm bot started
+print("✅ Bot running...")
 app.run_polling()
