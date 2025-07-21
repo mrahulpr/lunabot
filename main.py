@@ -1,20 +1,19 @@
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+import os
+from telegram.ext import Updater
+from plugins import load_plugins
 
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text("👋 Hello! I am your personal bot.")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+OWNER_ID = os.getenv("OWNER_ID")
 
-def main():
-    import os
-    TOKEN = os.getenv("BOT_TOKEN")
+updater = Updater(BOT_TOKEN, use_context=True)
+dispatcher = updater.dispatcher
 
-    updater = Updater(TOKEN, use_context=True)
-    dp = updater.dispatcher
+# Load all plugins dynamically
+load_plugins(dispatcher, updater.bot)
 
-    dp.add_handler(CommandHandler("start", start))
+# Notify owner (on bot start)
+updater.bot.send_message(chat_id=OWNER_ID, text="🚀 Bot restarted via GitHub Action!")
 
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == "__main__":
-    main()
+# Call any plugin-specific start code (like scheduled jobs)
+updater.start_polling()
+updater.idle()
