@@ -27,12 +27,12 @@ PLUGINS: Dict[str, Dict[str, Any]] = {}
 
 ABOUT_TEXT = """<b>💡 About Me</b>
 
-<b>Owner:</b> Achhaaa 🙈 <a href="https://t.me/rahulp_r">t.me/rahulp_r</a>
+<b>Owner:</b> <a href="https://t.me/rahulp_r">Achhaaa 🙈</a>
 <b>Total Users:</b> അറിഞ്ഞിട്ട് എന്തിനാ 😂...
 <b>Server:</b> Free Server Alla But Down ആയേക്കാം ⚡️
 <b>Memory:</b> 1 GB 😧
 <b>Uptime:</b> Born on 29th Jan 👶
-<b>Bot Version:</b> v3.1.7 [Beta]"""
+<b>Bot Version:</b> v3.1.7 [ Beta ]"""
 
 # ------------------------
 # Plugin loading
@@ -90,7 +90,7 @@ def build_help_keyboard() -> InlineKeyboardMarkup:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         '<b>👋 Hi\nWelcome to the Bot, Nothing special Here.</b> '
-        '<a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.',
+        '<b><a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.</b>',
         parse_mode="HTML",
         reply_markup=build_main_menu_markup()
     )
@@ -109,7 +109,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if data == "main_menu":
         await query.edit_message_text(
             '<b>👋 Hi\nWelcome to the Bot, Nothing special Here.</b> '
-            '<a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.',
+            '<b><a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.</b>',
             parse_mode="HTML",
             reply_markup=build_main_menu_markup()
         )
@@ -123,7 +123,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     elif data == "help":
         await query.edit_message_text(
-            "**അധികം Modules ഇല്ലാത്തതിനാൽ ക്ഷമിക്കണം അച്ഛൻ തിരക്കിൽ ആയിരുന്നു 😅. He will add More in Future 👍**",
+            "<b>അധികം Modules ഇല്ലാത്തതിനാൽ ക്ഷമിക്കണം അച്ഛൻ തിരക്കിൽ ആയിരുന്നു 😅. He will add More in Future 👍</b>",
             reply_markup=build_help_keyboard(),
         )
 
