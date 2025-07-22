@@ -84,9 +84,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Start command from chat."""
     # Called from /start (has update.message)
     await update.message.reply_text(
-        "<b>👋 Hi<br>Welcome to the Bot, Nothing special Here.</b> <a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.",
-        reply_markup=build_main_menu_markup(),
-    )
+    '<b>👋 Hi<br>Welcome to the Bot, Nothing special Here.</b> <a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.',
+    parse_mode="HTML"
+)
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -103,10 +103,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     data = query.data
 
     if data == "main_menu":
-        await query.edit_message_text(
-            "<b>👋 Hi<br>Welcome to the Bot, Nothing special Here.</b> <a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.",
-            reply_markup=build_main_menu_markup(),
-        )
+        await update.message.reply_text(
+    '<b>👋 Hi<br>Welcome to the Bot, Nothing special Here.</b> <a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.',
+    parse_mode="HTML"
+)
 
     elif data == "info":
         await query.edit_message_text(
