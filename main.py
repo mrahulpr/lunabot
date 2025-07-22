@@ -1,83 +1,168 @@
 import os
 import importlib
+from typing import Dict, Any
+
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, Application
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
+from telegram.ext import (
+    ApplicationBuilder,
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+)
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-PLUGINS = {}
 
-def load_plugins(app: Application):
+# plugin_name -> info dict from get_info()
+PLUGINS: Dict[str, Dict[str, Any]] = {}
+
+
+# ------------------------
+# Plugin loading
+# ------------------------
+def load_plugins(app: Application) -> None:
+    """Import all plugin modules and let them register handlers."""
     global PLUGINS
     PLUGINS.clear()
     plugin_dir = "plugins"
 
-    for file in os.listdir(plugin_dir):
-        if file.endswith(".py") and file != "__init__.py":
-            name = file[:-3]
-            try:
-                module = importlib.import_module(f"{plugin_dir}.{name}")
-                if hasattr(module, "get_info"):
-                    PLUGINS[name] = module.get_info()
-                if hasattr(module, "setup"):
-                    module.setup(app)
-            except Exception as e:
-                print(f"❌ Failed to load plugin {name}: {e}")
+    if not os.path.isdir(plugin_dir):
+        print("⚠️ No plugins/ directory found.")
+        return
 
-def build_help_keyboard():
-    keyboard = [
-        [InlineKeyboardButton(f"{info['name']}", callback_data=f"plugin::{key}")]
+    for file in os.listdir(plugin_dir):
+        if not file.endswith(".py") or file == "__init__.py":
+            continue
+        name = file[:-3]
+        try:
+            module = importlib.import_module(f"{plugin_dir}.{name}")
+            if hasattr(module, "get_info"):
+                info = module.get_info() or {}
+                PLUGINS[name] = info
+            if hasattr(module, "setup"):
+                module.setup(app)  # plugin registers its own handlers / jobs
+            print(f"✅ Loaded plugin: {name}")
+        except Exception as e:
+            print(f"❌ Failed to load plugin {name}: {e}")
+
+
+# ------------------------
+# UI builders
+# ------------------------
+def build_main_menu_markup() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("ℹ️ Info", callback_data="info"),
+                InlineKeyboardButton("🆘 Help", callback_data="help"),
+            ]
+        ]
+    )
+
+
+def build_help_keyboard() -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(info["name"], callback_data=f"plugin::{key}")]
         for key, info in PLUGINS.items()
     ]
-    if not keyboard:
-        keyboard = [[InlineKeyboardButton("⛔ No plugins available", callback_data="none")]]
-    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="main_menu")])
-    return InlineKeyboardMarkup(keyboard)
+    if not rows:
+        rows = [[InlineKeyboardButton("⛔ No plugins available", callback_data="none")]]
+    rows.append([InlineKeyboardButton("🔙 Back", callback_data="main_menu")])
+    return InlineKeyboardMarkup(rows)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [
-            InlineKeyboardButton("ℹ️ Info", callback_data="info"),
-            InlineKeyboardButton("🆘 Help", callback_data="help")
-        ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("👋 Welcome! I am your modular Telegram bot.", reply_markup=reply_markup)
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🧩 Available Plugins:", reply_markup=build_help_keyboard())
+# ------------------------
+# Handlers
+# ------------------------
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Start command from chat."""
+    # Called from /start (has update.message)
+    await update.message.reply_text(
+        "👋 Welcome! I am your modular Telegram bot.",
+        reply_markup=build_main_menu_markup(),
+    )
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(
+        "🧩 Available Plugins:",
+        reply_markup=build_help_keyboard(),
+    )
+
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handles ALL inline button presses from the core menu."""
     query = update.callback_query
     await query.answer()
     data = query.data
 
     if data == "main_menu":
-        await start(update, context)
+        await query.edit_message_text(
+            "👋 Welcome back! Choose an option:",
+            reply_markup=build_main_menu_markup(),
+        )
+
     elif data == "info":
-        await query.edit_message_text("ℹ️ This bot is designed to auto-load plugins and run 24/7 via GitHub Actions.")
+        await query.edit_message_text(
+            "ℹ️ This bot auto-loads plugins and runs on GitHub Actions.",
+            reply_markup=build_main_menu_markup(),
+        )
+
     elif data == "help":
-        await query.edit_message_text("🧩 Available Plugins:", reply_markup=build_help_keyboard())
+        await query.edit_message_text(
+            "🧩 Available Plugins:",
+            reply_markup=build_help_keyboard(),
+        )
+
     elif data.startswith("plugin::"):
         plugin_key = data.split("plugin::", 1)[1]
         plugin_info = PLUGINS.get(plugin_key, {})
-        text = plugin_info.get("description", "No description available.")
-        keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="help")]]
-        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
-    else:
-        await query.edit_message_text("❓ Unknown command.")
+        desc = plugin_info.get("description", "No description available.")
+        await query.edit_message_text(
+            desc,
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("🔙 Back", callback_data="help")]]
+            ),
+        )
 
-def main():
+    else:
+        await query.edit_message_text(
+            "❓ Unknown selection.",
+            reply_markup=build_main_menu_markup(),
+        )
+
+
+# ------------------------
+# Main entry
+# ------------------------
+def main() -> None:
+    if not TOKEN:
+        raise RuntimeError("BOT_TOKEN not set in environment.")
+
     app = ApplicationBuilder().token(TOKEN).build()
 
+    # load plugins BEFORE adding core callback handler? order doesn't matter much,
+    # but we load first so plugin patterns get registered; our catch-all pattern is specific.
     load_plugins(app)
 
+    # core command handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+
+    # core inline callback handler (info/help/back + generic plugin desc)
+    # We keep no pattern here so ALL unhandled callback_data come through,
+    # but we check known values inside. This prevents conflicts.
     app.add_handler(CallbackQueryHandler(button_handler))
 
+    print("🚀 Bot starting...")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
