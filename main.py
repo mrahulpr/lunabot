@@ -11,6 +11,8 @@ from telegram.ext import (
     ContextTypes,
 )
 import logging
+import asyncio
+
 
 logging.basicConfig(
     filename="bot.log",
@@ -144,6 +146,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 # ------------------------
 # Main entry
 # ------------------------
+
+
+
 def main() -> None:
     if not TOKEN:
         raise RuntimeError("BOT_TOKEN not set in environment.")
@@ -155,7 +160,9 @@ def main() -> None:
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    async def notify_restart():
+    async def custom_run():
+        await app.initialize()
+        await app.start()
         try:
             await app.bot.send_message(
                 chat_id=-1002379666380,
@@ -164,12 +171,13 @@ def main() -> None:
             )
         except Exception as e:
             print(f"❌ Failed to send restart message: {e}")
+        await app.updater.start_polling()
+        await app.updater.wait_until_closed()
+        await app.stop()
+        await app.shutdown()
 
     print("🚀 Bot starting...")
     logging.info("🚀 Bot started and logging enabled.")
-
-    # Run the notify function and then polling
-    app.run_polling(on_startup=[notify_restart])
-
+    asyncio.run(custom_run())
 if __name__ == "__main__":
     main()
