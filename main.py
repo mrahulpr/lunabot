@@ -163,6 +163,15 @@ def main() -> None:
     print("🚀 Bot starting...")
     app.run_polling()
 
+import logging
+logging.basicConfig(
+    filename="bot.log",
+    format="%(asctime)s - %(message)s",
+    level=logging.INFO
+)
+
+logging.info("🚀 Bot started and logging enabled.")
+
 
 if __name__ == "__main__":
     main()
