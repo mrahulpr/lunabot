@@ -155,9 +155,21 @@ def main() -> None:
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CallbackQueryHandler(button_handler))
 
+    async def notify_restart():
+        try:
+            await app.bot.send_message(
+                chat_id=-1002379666380,
+                text="✅ <b>Bot restarted successfully</b>",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            print(f"❌ Failed to send restart message: {e}")
+
     print("🚀 Bot starting...")
     logging.info("🚀 Bot started and logging enabled.")
-    app.run_polling()
+
+    # Run the notify function and then polling
+    app.run_polling(on_startup=[notify_restart])
 
 if __name__ == "__main__":
     main()
