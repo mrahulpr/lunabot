@@ -8,7 +8,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❗ Usage: /echo <text>")
 
-# When user clicks on "Echo 🗣️" button from Help menu
+# Button callback for plugin::echo
 async def echo_help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -29,7 +29,7 @@ def get_info():
         "description": "Replies back with what you say."
     }
 
-# Setup handler
+# Register handlers
 def setup(app):
     app.add_handler(CommandHandler("echo", echo))
-    app.add_handler(CallbackQueryHandler(echo_help_callback, pattern="^plugin_echo$"))
+    app.add_handler(CallbackQueryHandler(echo_help_callback, pattern="^plugin::echo$"))
