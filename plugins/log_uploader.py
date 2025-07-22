@@ -1,86 +1,86 @@
 import os
-import asyncio
 import logging
+from typing import Optional
+
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 LOG_FILE = "bot.log"
-LAST_LINE_FILE = "last_log_line.txt"
-LOG_CHAT_ID = int(os.getenv("LOG_CHAT_ID", "0"))  # Set this in GitHub Secrets
+_last_pos = 0  # in-memory per run
 
-# Set up logger if not already set
-def setup_logger():
+LOG_CHAT_ID = int(os.getenv("LOG_CHAT_ID", "0"))           # set in GitHub secrets
+LOG_INTERVAL_SECONDS = int(os.getenv("LOG_INTERVAL_SECONDS", "900"))  # default 15m
+
+
+def _setup_file_logger():
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
+    # avoid duplicate handlers
+    for h in logger.handlers:
+        if isinstance(h, logging.FileHandler) and h.baseFilename.endswith(LOG_FILE):
+            return
+    fh = logging.FileHandler(LOG_FILE, encoding="utf-8")
+    fh.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logger.addHandler(fh)
 
-    if not any(isinstance(h, logging.FileHandler) and h.baseFilename.endswith(LOG_FILE) for h in logger.handlers):
-        handler = logging.FileHandler(LOG_FILE, encoding='utf-8')
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
 
-# Upload new log lines since last sent
-async def upload_logs_task(app: Application):
-    while True:
-        await asyncio.sleep(600)  # Run every 10 minutes
+async def _send_new_logs(context: ContextTypes.DEFAULT_TYPE) -> None:
+    global _last_pos
+    if LOG_CHAT_ID == 0 or not os.path.exists(LOG_FILE):
+        return
 
-        if not os.path.exists(LOG_FILE):
-            continue
-
+    try:
         with open(LOG_FILE, "r", encoding="utf-8") as f:
-            lines = f.readlines()
+            f.seek(_last_pos)
+            new_data = f.read()
+            _last_pos = f.tell()
+    except Exception as e:
+        print(f"[log_uploader] read error: {e}")
+        return
 
-        last_index = 0
-        if os.path.exists(LAST_LINE_FILE):
-            try:
-                with open(LAST_LINE_FILE, "r") as f:
-                    last_index = int(f.read().strip())
-            except:
-                last_index = 0
+    if not new_data.strip():
+        return
 
-        new_lines = lines[last_index:]
-        if new_lines and LOG_CHAT_ID != 0:
-            log_text = "".join(new_lines).strip()
-            chunks = [log_text[i:i + 4000] for i in range(0, len(log_text), 4000)]
-
-            for chunk in chunks:
-                try:
-                    await app.bot.send_message(LOG_CHAT_ID, f"📄 New Logs:\n\n<pre>{chunk}</pre>", parse_mode="HTML")
-                except Exception as e:
-                    print(f"❌ Failed to send log chunk: {e}")
-
-            with open(LAST_LINE_FILE, "w") as f:
-                f.write(str(len(lines)))
-
-# Plugin setup
-def setup(app: Application):
-    setup_logger()
-
-    # Start periodic log task after bot starts
-    async def post_startup(app_: Application):
-        app_.create_task(upload_logs_task(app_))
-        logging.info("🚀 Log uploader task started.")
-
-    app.post_init = post_startup
-
-    # Manual command to send all logs now
-    async def send_logs(update, context: ContextTypes.DEFAULT_TYPE):
+    # chunk into safe-sized messages
+    max_len = 3900  # a little margin below 4096
+    for i in range(0, len(new_data), max_len):
+        chunk = new_data[i : i + max_len]
         try:
-            if not os.path.exists(LOG_FILE):
-                await update.message.reply_text("📭 Log file not found.")
-                return
-
-            with open(LOG_FILE, "r", encoding="utf-8") as f:
-                logs = f.read()
-
-            if not logs.strip():
-                await update.message.reply_text("📭 No logs yet.")
-                return
-
-            chunks = [logs[i:i + 4000] for i in range(0, len(logs), 4000)]
-            for chunk in chunks:
-                await update.message.reply_text(f"📝 Full Logs:\n\n<pre>{chunk}</pre>", parse_mode="HTML")
-
+            await context.bot.send_message(
+                chat_id=LOG_CHAT_ID,
+                text=f"📝 Log update:\n\n<pre>{chunk}</pre>",
+                parse_mode="HTML",
+            )
         except Exception as e:
-            await update.message.reply_text(f"⚠️ Failed to send logs: {e}")
+            print(f"[log_uploader] send error: {e}")
 
-    app.add_handler(CommandHandler("sendlogs", send_logs))
+
+async def _send_full_logs(update, context: ContextTypes.DEFAULT_TYPE):
+    if not os.path.exists(LOG_FILE):
+        await update.message.reply_text("📭 Log file not found.")
+        return
+    with open(LOG_FILE, "r", encoding="utf-8") as f:
+        data = f.read() or "📭 (empty)"
+    max_len = 3900
+    for i in range(0, len(data), max_len):
+        chunk = data[i : i + max_len]
+        await update.message.reply_text(
+            f"📝 Full logs:\n\n<pre>{chunk}</pre>",
+            parse_mode="HTML",
+        )
+
+
+def get_info():
+    return {
+        "name": "📤 Log Messenger",
+        "description": "Sends new logs to a private chat at intervals.",
+    }
+
+
+def setup(app: Application):
+    _setup_file_logger()
+
+    # repeating job (starts when app starts polling)
+    app.job_queue.run_repeating(_send_new_logs, interval=LOG_INTERVAL_SECONDS, first=10)
+
+    # manual command
+    app.add_handler(CommandHandler("sendlogs", _send_full_logs))
