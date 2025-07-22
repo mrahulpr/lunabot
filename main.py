@@ -122,16 +122,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
 
     elif data == "help":
-    caption = (
-        "<b>അധികം Modules ഇല്ലാത്തതിനാൽ ക്ഷമിക്കണം അച്ഛൻ തിരക്കിൽ ആയിരുന്നു 😅.</b>\n\n"
-        "<b>He will add More in Future 👍</b>\n\n"
-        "🧩 <b>Available Plugins:</b>"
-    )
-    await query.edit_message_text(
-        caption,
-        parse_mode="HTML",
-        reply_markup=build_help_keyboard(),
-    )
+        caption = (
+            "<b>അധികം Modules ഇല്ലാത്തതിനാൽ ക്ഷമിക്കണം അച്ഛൻ തിരക്കിൽ ആയിരുന്നു 😅.</b>\n\n"
+            "<b>He will add More in Future 👍</b>\n\n"
+            "🧩 <b>Available Plugins:</b>"
+        )
+        await query.edit_message_text(
+            caption,
+            parse_mode="HTML",
+            reply_markup=build_help_keyboard(),
+        )
 
     elif data.startswith("plugin::"):
         plugin_key = data.split("plugin::", 1)[1]
