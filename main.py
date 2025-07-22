@@ -22,6 +22,15 @@ load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 PLUGINS: Dict[str, Dict[str, Any]] = {}
 
+ABOUT_TEXT = """<b>💡 About Me</b>
+
+<b>Owner:</b> Achhaaa 🙈 <a href="https://t.me/rahulp_r">t.me/rahulp_r</a>
+<b>Total Users:</b> അറിഞ്ഞിട്ട് എന്തിനാ 😂...
+<b>Server:</b> Free Server Alla But Down ആയേക്കാം ⚡️
+<b>Memory:</b> 1 GB 😧
+<b>Uptime:</b> Born on 29th Jan 👶
+<b>Bot Version:</b> v3.1.7 [Beta]"""
+
 # ------------------------
 # Plugin loading
 # ------------------------
@@ -95,7 +104,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     data = query.data
 
     if data == "main_menu":
-        await query.message.reply_text(
+        await query.edit_message_text(
             '<b>👋 Hi\nWelcome to the Bot, Nothing special Here.</b> '
             '<a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.',
             parse_mode="HTML",
@@ -104,8 +113,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     elif data == "info":
         await query.edit_message_text(
-            "ℹ️ This bot auto-loads plugins and runs on GitHub Actions.",
-            reply_markup=build_main_menu_markup(),
+            ABOUT_TEXT,
+            parse_mode="HTML",
+            reply_markup=build_main_menu_markup()
         )
 
     elif data == "help":
