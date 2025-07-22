@@ -89,7 +89,7 @@ def build_help_keyboard() -> InlineKeyboardMarkup:
 # ------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        '<b>👋 Hi\nWelcome to the Bot, Nothing special Here.</b> '
+        '<b>👋 Hi\nWelcome to the Bot, </b> '
         '<b><a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.</b>',
         parse_mode="HTML",
         reply_markup=build_main_menu_markup()
@@ -108,7 +108,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if data == "main_menu":
         await query.edit_message_text(
-            '<b>👋 Hi\nWelcome to the Bot, Nothing special Here.</b> '
+            '<b>👋 Hi\nWelcome to the Bot, </b> '
             '<b><a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.</b>',
             parse_mode="HTML",
             reply_markup=build_main_menu_markup()
@@ -122,10 +122,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
 
     elif data == "help":
-        await query.edit_message_text(
-            "<b>അധികം Modules ഇല്ലാത്തതിനാൽ ക്ഷമിക്കണം അച്ഛൻ തിരക്കിൽ ആയിരുന്നു 😅. He will add More in Future 👍</b>",
-            reply_markup=build_help_keyboard(),
-        )
+    caption = (
+        "<b>അധികം Modules ഇല്ലാത്തതിനാൽ ക്ഷമിക്കണം അച്ഛൻ തിരക്കിൽ ആയിരുന്നു 😅.</b>\n\n"
+        "<b>He will add More in Future 👍</b>\n\n"
+        "🧩 <b>Available Plugins:</b>"
+    )
+    await query.edit_message_text(
+        caption,
+        parse_mode="HTML",
+        reply_markup=build_help_keyboard(),
+    )
 
     elif data.startswith("plugin::"):
         plugin_key = data.split("plugin::", 1)[1]
