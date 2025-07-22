@@ -59,8 +59,8 @@ def build_main_menu_markup() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("ℹ️ Info", callback_data="info"),
-                InlineKeyboardButton("🆘 Help", callback_data="help"),
+                InlineKeyboardButton("😜 About Me", callback_data="info"),
+                InlineKeyboardButton("Help 🤗", callback_data="help"),
             ]
         ]
     )
@@ -84,7 +84,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Start command from chat."""
     # Called from /start (has update.message)
     await update.message.reply_text(
-        "👋 Welcome! I am your modular Telegram bot.",
+        "<b>👋 Hi<br>Welcome to the Bot, Nothing special Here.</b> <a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.",
         reply_markup=build_main_menu_markup(),
     )
 
@@ -104,7 +104,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if data == "main_menu":
         await query.edit_message_text(
-            "👋 Welcome back! Choose an option:",
+            "<b>👋 Hi<br>Welcome to the Bot, Nothing special Here.</b> <a href="https://t.me/rahulp_r">എൻ്റെ അച്ഛൻ 😇</a> എന്നെ വെറുതെ ഉണ്ടാക്കിയതാണ്.",
             reply_markup=build_main_menu_markup(),
         )
 
@@ -116,7 +116,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     elif data == "help":
         await query.edit_message_text(
-            "🧩 Available Plugins:",
+            "**അധികം Modules ഇല്ലാത്തതിനാൽ ക്ഷമിക്കണം അച്ഛൻ തിരക്കിൽ ആയിരുന്നു 😅. He will add More in Future 👍**",
             reply_markup=build_help_keyboard(),
         )
 
