@@ -1,7 +1,7 @@
-<b>🤖 Bot Name :</b> <b><a href="https://t.me/Taskieebot">- 𝙻𝚞𝚗𝚊 𝙱𝚘𝚝 -</a></b><br>
-<b>👨‍👩‍👦 Daddy :</b> <b><a href="https://t.me/rahulp_r">- 𝚁𝚊𝚑𝚞𝚕 𝙿 𝚁 -</a></b><br>
-<b>💻 Total Users :</b> <b><a href="https://tg://settings">1 [ Only You 🫢]</a></b><br>
-<b>⚡️ Uptime :</b> <b>January 29th</b><br>
-<b>🔢 Version :</b> <b>v1.0.3 [ Beta ]</b><br>
-<b>⛱ Server :</b> <b>Paid Alla 😐</b><br>
-<b>💿 Storage :</b> <b>1GB 🥶</b>
+<b>🤖 Bot Name :</b> <a href="https://t.me/Taskieebot">- 𝙻𝚞𝚗𝚊 𝙱𝚘𝚝 -</a>
+<b>👨‍👩‍👦 Daddy :</b> <a href="https://t.me/rahulp_r">- 𝚁𝚊𝚑𝚞𝚕 𝙿 𝚁 -</a>
+<b>💻 Total Users : 1 </b> <a href="https://tg://settings">[ Only You 🫢]</a>
+<b>⚡️ Uptime :</b> January 29th
+<b>🔢 Version :</b> v1.0.3 [ Beta ]
+<b>⛱ Server :</b> Paid Alla 😐
+<b>💿 Storage :</b> 1GB 🥶
