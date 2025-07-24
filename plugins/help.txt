@@ -1,0 +1,13 @@
+📖 <b>Help Menu</b>
+
+🟢 <b>/start</b> — Launch the bot and see main options  
+🟢 <b>/help</b> — You're here already 😉  
+🟢 <b>Dynamic Plugins</b> — Just drop any plugin into the plugins folder with proper setup and it'll load at startup.
+
+🛠 Plugins must contain:
+- A <code>setup(app)</code> function to register handlers
+- An optional <code>get_info()</code> for listing in UI
+
+🧑‍💻 Made with ❤️ by <a href="https://t.me/rahulp_r">Rahul P</a>
+
+🔙 Click back to return.
