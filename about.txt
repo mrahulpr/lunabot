@@ -1,12 +1,7 @@
-🤖 <b>Bot Name:</b> Luna  
-🔢 <b>Version:</b> 1.0  
-📦 <b>Storage:</b> Plugin-based system  
-⚙️ <b>Type:</b> Inline Telegram Bot  
-
-🧠 This bot is designed to be minimal, plugin-expandable, and fast.  
-🛠️ Developed by <a href="https://t.me/rahulp_r">Rahul P</a>  
-
-🧩 All plugins are loaded dynamically from the plugins folder.  
-💡 Want to add a new feature? Just drop a file in the plugin folder with `setup()` and you're good to go!
-
-🔙 Click back to return.
+<b>🤖 Bot Name :</b> <a href="https://t.me/Taskieebot"><b>- 𝙻𝚞𝚗𝚊 𝙱𝚘𝚝 -</b></a><br>
+<b>👨‍👩‍👦 Daddy :</b> <a href="https://t.me/rahulp_r"><b>- 𝚁𝚊𝚑𝚞𝚕 𝙿 𝚁 -</b></a><br>
+<b>💻 Total Users :</b> <a href="https://t.me/settings"><b>1 [ Only You 🫢]</b></a><br>
+<b>⚡️ Uptime :</b> <b>January 29th</b><br>
+<b>🔢 Version :</b> <b>v1.0.3 [ Beta ]</b><br>
+<b>⛱ Server :</b> <b>Paid Alla 😐</b><br>
+<b>💿 Storage :</b> <b>1GB 🥶</b>
