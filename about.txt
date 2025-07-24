@@ -1,6 +1,6 @@
-<b>🤖 Bot Name :</b> <a href="https://t.me/Taskieebot">- 𝙻𝚞𝚗𝚊 𝙱𝚘𝚝 -</a><br>
-<b>👨‍👩‍👦 Daddy :</b> <a href="https://t.me/rahulp_r">- 𝚁𝚊𝚑𝚞𝚕 𝙿 𝚁 -</a><br>
-<b>💻 Total Users :</b> <a href="https://t.me/settings">1 (Only You 🫢)</a><br>
+<b>🤖 Bot Name :</b> <b>-</b> <a href="https://t.me/Taskieebot"><b>𝙻𝚞𝚗𝚊 𝙱𝚘𝚝</b></a><br>
+<b>👨‍👩‍👦 Daddy :</b> <b>-</b> <a href="https://t.me/rahulp_r"><b>𝚁𝚊𝚑𝚞𝚕 𝙿 𝚁</b></a><br>
+<b>💻 Total Users :</b> <a href="https://t.me/settings"><b>1 (Only You 🫢)</b></a><br>
 <b>⚡️ Uptime :</b> <b>January 29th</b><br>
 <b>🔢 Version :</b> <b>v1.0.3 (Beta)</b><br>
 <b>⛱ Server :</b> <b>Paid Alla 😐</b><br>
