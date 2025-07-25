@@ -3,7 +3,7 @@ from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 import os
 
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_TOKEN = os.getenv("G_TOKEN")
 REPO_NAME = os.getenv("REPO_NAME")  # e.g., "rahulxyz/mybot"
 ALLOWED_USER_ID = int(os.getenv("OWNER_ID"))
 
@@ -14,7 +14,7 @@ async def stop_workflows(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Authorization": f"Bearer {G_TOKEN}",
         "Accept": "application/vnd.github+json"
     }
 
