@@ -3,7 +3,7 @@ from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 import os
 
-GITHUB_TOKEN = os.getenv("G_TOKEN")
+G_TOKEN = os.getenv("G_TOKEN")
 REPO_NAME = os.getenv("REPO_NAME")  # e.g., "rahulxyz/mybot"
 ALLOWED_USER_ID = int(os.getenv("OWNER_ID"))
 
