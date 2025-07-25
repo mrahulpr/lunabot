@@ -1,12 +1,12 @@
 import aiohttp
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
+import os
 
-# Replace with your details
-GITHUB_TOKEN = "ghp_XXX_YOUR_TOKEN_HERE"
-REPO_NAME = "yourusername/your-repo"
-OWNER = "yourusername"  # usually same as username
-ALLOWED_USER_ID = 123456789  # your Telegram user ID to restrict access
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+REPO_NAME = os.getenv("REPO_NAME")  # e.g., "rahulxyz/mybot"
+ALLOWED_USER_ID = int(os.getenv("OWNER_ID"))
+
 
 async def stop_workflows(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ALLOWED_USER_ID:
