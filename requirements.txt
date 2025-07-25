@@ -3,4 +3,4 @@ python-dotenv
 python-telegram-bot[job-queue]
 nest_asyncio
 yt_dlp
-
+aiohttp
