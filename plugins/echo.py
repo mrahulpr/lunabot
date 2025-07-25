@@ -4,10 +4,10 @@ from telegram.ext import (
     MessageHandler, filters, ContextTypes
 )
 
-# Track chats where echo is active
+# Track active echo chats
 echo_enabled_chats = set()
 
-# /echo command
+# /echo command (manual trigger)
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         await update.message.reply_text(" ".join(context.args))
@@ -18,7 +18,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add_echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     echo_enabled_chats.add(chat_id)
-    await update.message.reply_text("✅ Echo mode activated. I will now echo everything!")
+    await update.message.reply_text("✅ Echo mode activated. I will echo every message sent in this chat.")
 
 # /deleteecho command
 async def delete_echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -29,68 +29,67 @@ async def delete_echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("⚠️ Echo mode was not active.")
 
-# Echo all message types
+# Handle ALL incoming messages and media
 async def auto_echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    message = update.message
+    message = update.effective_message  # <-- This captures all, not just .message
 
-    if chat_id not in echo_enabled_chats or not message:
+    if chat_id not in echo_enabled_chats:
         return
 
     if message.text:
         await message.reply_text(message.text)
 
     elif message.photo:
-        await message.reply_photo(photo=message.photo[-1].file_id, caption=message.caption or "")
+        await message.reply_photo(message.photo[-1].file_id, caption=message.caption or "")
 
     elif message.video:
-        await message.reply_video(video=message.video.file_id, caption=message.caption or "")
+        await message.reply_video(message.video.file_id, caption=message.caption or "")
 
     elif message.document:
-        await message.reply_document(document=message.document.file_id, caption=message.caption or "")
+        await message.reply_document(message.document.file_id, caption=message.caption or "")
 
     elif message.sticker:
-        await message.reply_sticker(sticker=message.sticker.file_id)
+        await message.reply_sticker(message.sticker.file_id)
 
     elif message.voice:
-        await message.reply_voice(voice=message.voice.file_id, caption=message.caption or "")
+        await message.reply_voice(message.voice.file_id, caption=message.caption or "")
 
     elif message.audio:
-        await message.reply_audio(audio=message.audio.file_id, caption=message.caption or "")
+        await message.reply_audio(message.audio.file_id, caption=message.caption or "")
 
     elif message.animation:
-        await message.reply_animation(animation=message.animation.file_id, caption=message.caption or "")
+        await message.reply_animation(message.animation.file_id, caption=message.caption or "")
 
     else:
-        await message.reply_text("⚠️ Unsupported message type.")
+        await message.reply_text("⚠️ Unsupported message type received.")
 
-# Help for the Help menu
+# Help handler
 async def echo_help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text(
-        "🗣️ *Echo Plugin*\n\n"
+    await update.callback_query.answer()
+    await update.callback_query.edit_message_text(
+        "🗣️ *Echo Plugin Help*\n\n"
         "`/echo Hello` – Replies with 'Hello'.\n"
-        "`/addecho` – Activates full echo mode in this chat.\n"
-        "`/deleteecho` – Deactivates echo mode.\n\n"
-        "⚙️ All types (text, image, video, etc.) will be echoed.",
+        "`/addecho` – Activates echo mode in this chat.\n"
+        "`/deleteecho` – Stops echoing.\n\n"
+        "✨ Echoes ALL message types (text, media, stickers, etc.)",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🔙 Back", callback_data="help")]
         ]),
     )
 
-# Help info block
+# Plugin metadata
 def get_info():
     return {
         "name": "Echo 🗣️",
-        "description": "Echoes all message types in chats. Great for testing or fun."
+        "description": "Echoes all messages in enabled chats, including media."
     }
 
-# Register handlers
+# Plugin setup
 def setup(app):
     app.add_handler(CommandHandler("echo", echo))
     app.add_handler(CommandHandler("addecho", add_echo))
     app.add_handler(CommandHandler("deleteecho", delete_echo))
-    app.add_handler(MessageHandler(filters.ALL, auto_echo))  # <-- now captures all message types
+    app.add_handler(MessageHandler(filters.ALL, auto_echo))  # Important: listen to all!
     app.add_handler(CallbackQueryHandler(echo_help_callback, pattern=r"^plugin::echo$"))
