@@ -139,7 +139,7 @@ def setup_cron_job(app: Application):
         name="main_cron"
     )
 
-stop_workflows.setup(app)
+
 
 
 # ----------- Startup -----------
@@ -150,6 +150,7 @@ def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
     load_plugins(app)
+    stop_workflows.setup(app)
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
