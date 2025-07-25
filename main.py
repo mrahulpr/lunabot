@@ -11,6 +11,9 @@ from telegram.ext import (
     ContextTypes,
 )
 import logging
+from plugins import stop_workflows
+
+
 
 # Logging
 logging.basicConfig(
@@ -165,6 +168,10 @@ def main():
     print("🚀 Bot is starting...")
     logging.info("🚀 Bot is running.")
     app.run_polling()
+
+
+stop_workflows.setup(app)
+
 
 if __name__ == "__main__":
     main()
