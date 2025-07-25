@@ -139,6 +139,9 @@ def setup_cron_job(app: Application):
         name="main_cron"
     )
 
+stop_workflows.setup(app)
+
+
 # ----------- Startup -----------
 def main():
     if not TOKEN:
@@ -170,7 +173,7 @@ def main():
     app.run_polling()
 
 
-stop_workflows.setup(app)
+
 
 
 if __name__ == "__main__":
