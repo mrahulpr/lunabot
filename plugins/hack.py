@@ -51,11 +51,11 @@ async def hack_help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="help")]]
     text = (
         "💻 *Hack Plugin*\n\n"
-        "Simulates a fake hacking sequence as a prank.\n\n"
+        "Simulates a fake hacking sequence as a prank\\.\n\n"
         "*Usage:*\n"
-        "`/hack` – triggers the hacking animation.\n"
+        "`/hack` \\– triggers the hacking animation\\.\n"
     )
-    await query.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    await query.edit_message_text(text, parse_mode="MarkdownV2", reply_markup=InlineKeyboardMarkup(keyboard))
 
 def get_info():
     return {
