@@ -84,14 +84,14 @@ def build_about_keyboard() -> InlineKeyboardMarkup:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         WELCOME_TEXT,
-        parse_mode="HTML",
+        parse_mode="MarkdownV2",
         reply_markup=build_main_menu_markup()
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         HELP_HEADER,
-        parse_mode="HTML",
+        parse_mode="MarkdownV2",
         reply_markup=build_help_keyboard()
     )
 
@@ -103,19 +103,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if data == "main_menu":
         await query.edit_message_text(
             WELCOME_TEXT,
-            parse_mode="HTML",
+            parse_mode="MarkdownV2",
             reply_markup=build_main_menu_markup()
         )
     elif data == "info":
         await query.edit_message_text(
             ABOUT_TEXT,
-            parse_mode="HTML",
+            parse_mode="MarkdownV2",
             reply_markup=build_about_keyboard()
         )
     elif data == "help":
         await query.edit_message_text(
             HELP_HEADER,
-            parse_mode="HTML",
+            parse_mode="MarkdownV2",
             reply_markup=build_help_keyboard()
         )
     else:
