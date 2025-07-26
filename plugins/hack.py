@@ -1,5 +1,4 @@
 import asyncio
-import random
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -34,16 +33,16 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     for line in animation_2:
         await asyncio.sleep(0.6)
-        await msg.edit_text(line)
+        await msg.edit_text(line, parse_mode="MarkdownV2")
 
     await asyncio.sleep(1.5)
     final_msg = (
-        "✅ Hack Complete!\n"
-        "🔒 Data archived.\n"
-        "📄 Download link:\n"
-        "https://drive.google.com/file/d/1JNA0HY1v8ClBDU9PhmyQ-z8KuLgvteT5/view?usp=sharing"
+        "*✅ Hack Complete\\!*\\n"
+        "🔒 *Data archived\\.\\n*"
+        "📄 *Download link:*\\n"
+        "[Open file](https://drive.google.com/file/d/1JNA0HY1v8ClBDU9PhmyQ-z8KuLgvteT5/view?usp=sharing)"
     )
-    await msg.edit_text(final_msg)
+    await msg.edit_text(final_msg, parse_mode="MarkdownV2")
 
 async def hack_help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
