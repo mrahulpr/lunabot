@@ -10,14 +10,22 @@ ALLOWED_USER_ID = int(os.getenv("OWNER_ID"))
 
 async def stop_workflows(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ALLOWED_USER_ID:
-        await update.message.reply_text("🚫 You're not allowed to run this command.")
+        await update.message.reply_text(
+            "🚫 You're not allowed to run this command\\.",
+            parse_mode="MarkdownV2"
+        )
         return
 
     keyboard = [
         [InlineKeyboardButton("✅ Confirm Stop", callback_data="confirm_stop_workflows")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("⚠️ Are you sure you want to stop all running workflows except the latest one?", reply_markup=reply_markup)
+
+    await update.message.reply_text(
+        "⚠️ Are you sure you want to stop all running workflows except the *latest one*\\?",
+        reply_markup=reply_markup,
+        parse_mode="MarkdownV2"
+    )
 
 
 async def confirm_stop_workflows(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -25,7 +33,7 @@ async def confirm_stop_workflows(update: Update, context: ContextTypes.DEFAULT_T
     user_id = query.from_user.id
 
     if user_id != ALLOWED_USER_ID:
-        await query.answer(" നീ എൻ്റെ മുതലാളി അല്ല 😜", show_alert=True)
+        await query.answer("നീ എൻ്റെ മുതലാളി അല്ല 😜", show_alert=True)
         return
 
     await query.answer("Stopping workflows...")
@@ -43,12 +51,15 @@ async def confirm_stop_workflows(update: Update, context: ContextTypes.DEFAULT_T
             runs = [run for run in data.get("workflow_runs", []) if run["status"] == "in_progress"]
 
             if not runs:
-                await query.edit_message_text("✅ No running workflows found.")
+                await query.edit_message_text(
+                    "✅ No running workflows found\\.",
+                    parse_mode="MarkdownV2"
+                )
                 return
 
             runs.sort(key=lambda x: x["created_at"], reverse=True)
             latest_run_id = runs[0]["id"]
-            to_cancel = runs[1:]  # skip the latest one
+            to_cancel = runs[1:]  # Skip latest
 
             count = 0
             for run in to_cancel:
@@ -58,7 +69,8 @@ async def confirm_stop_workflows(update: Update, context: ContextTypes.DEFAULT_T
                         count += 1
 
             await query.edit_message_text(
-                f"🛑 Cancelled {count} old workflow(s). Latest one (ID: {latest_run_id}) is still running."
+                f"🛑 Cancelled *{count}* old workflow\\(s\\)\\. Latest one \\(ID: `{latest_run_id}`\\) is still running\\.",
+                parse_mode="MarkdownV2"
             )
 
 
