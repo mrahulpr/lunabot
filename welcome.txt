@@ -1,7 +1,7 @@
-👋 <b>Welcome to Luna Bot</b>
+👋 *Welcome to Luna Bot*
 
-🚀 A clean, modular Telegram bot.  
-🧩 Add plugins easily — no restart needed (hot reload ready soon!).  
-⚙️ Every plugin is isolated, stable, and easy to manage.
+🚀 A clean, modular Telegram bot\.  
+🧩 Add plugins easily — no restart needed \(hot reload ready soon!\)\.  
+⚙️ Every plugin is isolated, stable, and easy to manage\.
 
 👇 Choose an option below to continue:
