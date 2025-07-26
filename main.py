@@ -13,16 +13,14 @@ from telegram.ext import (
 import logging
 from plugins import stop_workflows
 
-
-
-# Logging
+# ----------- Logging -----------
 logging.basicConfig(
     filename="bot.log",
     format="%(asctime)s - %(message)s",
     level=logging.INFO
 )
 
-# Load .env
+# ----------- Load .env -----------
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 PLUGINS: Dict[str, Dict[str, Any]] = {}
@@ -139,9 +137,6 @@ def setup_cron_job(app: Application):
         name="main_cron"
     )
 
-
-
-
 # ----------- Startup -----------
 def main():
     if not TOKEN:
@@ -172,10 +167,6 @@ def main():
     print("🚀 Bot is starting...")
     logging.info("🚀 Bot is running.")
     app.run_polling()
-
-
-
-
 
 if __name__ == "__main__":
     main()
