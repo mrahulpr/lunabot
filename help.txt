@@ -1,11 +1,7 @@
-📖 *Help Menu*
+📖 \*Help Menu\*
 
-🟢 */start* — Launch the bot  
-🟢 */help* — Show help  
-🟢 *Plugins* — Drop into the `plugins` folder to auto\-load
+> \*Plugins\*
 
-🛠 Must include:  
-\- `setup\(app\)` function to register  
-\- Optional `get_info\(\)` for UI listing
-
-🧑‍💻 By [Rahul P](https://t.me/rahulp_r)
+`/start` \- Launch the bot
+`/help` \- Show help
+`/hack` \- to make an animation of hacking someone\.
