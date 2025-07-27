@@ -1,11 +1,10 @@
-📖 *Help Menu*
+*📖 Help Menu*
 
-🟢 */start* — Launch the bot  
-🟢 */help* — Show help  
-🟢 *Plugins* — Drop into the `plugins` folder to auto\-load
+> *Plugins For All*
 
-🛠 Must include:  
-\- `setup\(app\)` function to register  
-\- Optional `get_info\(\)` for UI listing
+*/start* \- Launch the bot
+*/help* \- Show help menu\.
+*/hack* \- To make an animation of hacking someone\.
 
-🧑‍💻 By [Rahul P](https://t.me/rahulp_r)
+> *Plugins For Admins*
+*/stopworkflows* \- To Stop Some Unwanted Background Processes\.
