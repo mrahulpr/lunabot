@@ -6,13 +6,13 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = await update.message.reply_text("🧠 Initiating hack...")
 
     animation_1 = [
-        "🟦 Installing Files To Hacked Private Server...",
-        "🟦 Target Selected.",
-        "🟦 Installing... 4%\n█▒▒▒▒▒▒▒▒▒▒▒▒",
-        "🟦 Installing... 20%\n███▒▒▒▒▒▒▒▒▒▒",
-        "🟦 Installing... 52%\n█████████▒▒▒▒",
-        "🟦 Installing... 100%\n████████████",
-        "🟩 Uploading payload to remote server...",
+        " Installing Files To Hacked Private Server...",
+        " Target Selected.",
+        " Installing... 4%\n█▒▒▒▒▒▒▒▒▒▒▒▒",
+        " Installing... 20%\n███▒▒▒▒▒▒▒▒▒▒",
+        " Installing... 52%\n█████████▒▒▒▒",
+        " Installing... 100%\n████████████",
+        " Uploading payload to remote server...",
     ]
     for line in animation_1:
         await asyncio.sleep(0.7)
@@ -39,7 +39,7 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
     final_msg = (
         "*✅ Hack Complete\\!*\\n"
         "🔒 *Data archived\\.\\n*"
-        "📄 *Download link:*\\n"
+        "📄 *Download link:*\\"
         "[Open file](https://drive.google.com/file/d/1JNA0HY1v8ClBDU9PhmyQ-z8KuLgvteT5/view?usp=sharing)"
     )
     await msg.edit_text(final_msg, parse_mode="MarkdownV2")
