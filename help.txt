@@ -1,7 +1,10 @@
-📖 \*Help Menu\*
+*📖 Help Menu*
 
-> \*Plugins\*
+> *Plugins For All*
 
-`/start` \- Launch the bot
-`/help` \- Show help
-`/hack` \- to make an animation of hacking someone\.
+*/start* \- Launch the bot
+*/help* \- Show help menu\.
+*/hack* \- To make an animation of hacking someone\.
+
+> *Plugins For Admins*
+*/stopworkflows* \- To Stop Some Unwanted Background Processes\.
