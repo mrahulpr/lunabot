@@ -1,24 +1,32 @@
-from telegram import Update
-from telegram.constants import MessageReactionTypeEmoji
+from telegram import Update, MessageReactionTypeEmoji
 from telegram.ext import CommandHandler, ContextTypes
 
-# You can change this emoji
-DEFAULT_REACTION = "🔥"
-
 async def react_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.reply_to_message:
-        return await update.message.reply_text("⚠️ Reply to a message to react!")
+    message = update.message
+
+    # Must reply to a message
+    if not message or not message.reply_to_message:
+        await message.reply_text("⚠️ Please reply to a message you want to react to.")
+        return
+
+    # Extract emoji from command args
+    if context.args:
+        emoji = context.args[0]
+    else:
+        emoji = "🔥"  # Default if no emoji given
 
     try:
-        await update.message.reply_to_message.react(DEFAULT_REACTION)
-        await update.message.reply_text(f"✅ Reacted with {DEFAULT_REACTION}")
+        await message.reply_to_message.react(
+            [MessageReactionTypeEmoji(emoji=emoji)]
+        )
+        await message.reply_text(f"✅ Reacted with {emoji}")
     except Exception as e:
-        await update.message.reply_text(f"❌ Failed to react: {e}")
+        await message.reply_text(f"❌ Failed to react: {e}")
 
 def get_info():
     return {
         "name": "React 🔥",
-        "description": "React to any replied message with an emoji. Usage: /react (as reply)"
+        "description": "React to a replied message with custom emoji. Usage: `/react 😂` (must be a reply)"
     }
 
 def setup(app):
