@@ -4,3 +4,4 @@ python-telegram-bot[job-queue]
 nest_asyncio
 yt_dlp
 aiohttp
+motor==3.4.0
