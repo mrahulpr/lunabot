@@ -14,9 +14,7 @@ import logging
 from plugins import stop_workflows,db
 
 
-async def main():
-    await init_db()  # Connect to MongoDB with logging support
-    ...
+
 
 # ----------- Logging -----------
 logging.basicConfig(
@@ -151,6 +149,7 @@ def main():
 
     load_plugins(app)
     stop_workflows.setup(app)
+    await init_db()  
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
