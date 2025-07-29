@@ -27,4 +27,5 @@ jobs:
           OWNER_ID: ${{ secrets.OWNER_ID }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
+          SUPPORT_CHAT_ID: ${{ secrets.SUPPORT_CHAT_ID }}
         run: python main.py
