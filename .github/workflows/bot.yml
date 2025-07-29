@@ -26,4 +26,5 @@ jobs:
           REPO_NAME: ${{ secrets.REPO_NAME }}
           OWNER_ID: ${{ secrets.OWNER_ID }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
         run: python main.py
