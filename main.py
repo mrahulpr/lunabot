@@ -13,6 +13,12 @@ from telegram.ext import (
 import logging
 from plugins import stop_workflows
 
+from plugin.db import init_db
+
+async def main():
+    await init_db()  # Connect to MongoDB with logging support
+    ...
+
 # ----------- Logging -----------
 logging.basicConfig(
     filename="bot.log",
