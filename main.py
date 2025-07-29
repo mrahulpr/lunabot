@@ -11,9 +11,8 @@ from telegram.ext import (
     ContextTypes,
 )
 import logging
-from plugins import stop_workflows
+from plugins import stop_workflows,db
 
-from plugin.db import init_db
 
 async def main():
     await init_db()  # Connect to MongoDB with logging support
