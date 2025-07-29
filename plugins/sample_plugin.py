@@ -1,32 +1,54 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
+# plugin/sample_plugin.py
 
-# Main command handler
+from datetime import datetime
+from telegram import Update
+from telegram.ext import CommandHandler, ContextTypes
+from plugin.db import db  # 🔗 MongoDB connection
+
+# /sample command
 async def sample_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("✅ Sample plugin is working!")
+    user = update.effective_user
+    chat = update.effective_chat
+    message = update.message
 
-# Optional help callback handler for interactive help menu
-async def sample_help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+    # Example data to store
+    data = {
+        "chat_id": chat.id,
+        "user_id": user.id,
+        "username": user.username,
+        "full_name": user.full_name,
+        "message": " ".join(context.args) if context.args else "No message",
+        "timestamp": datetime.utcnow()
+    }
 
-    keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="help")]]
-    text = (
-        "📘 *Sample Plugin*\n\n"
-        "This is a basic structure to build your own plugin.\n\n"
-        "*Usage:*\n"
-        "`/sample` – Executes the sample command."
+    # Save to MongoDB
+    await db.samples.insert_one(data)
+
+    await message.reply_text(
+        f"✅ Sample stored for {user.first_name}.\n📝 Message: {data['message']}"
     )
-    await query.edit_message_text(text, parse_mode="MarkdownV2", reply_markup=InlineKeyboardMarkup(keyboard))
 
-# Info metadata used for listing and help
+# Optional command to show last 3 entries
+async def sample_show(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    cursor = db.samples.find({"chat_id": chat_id}).sort("timestamp", -1).limit(3)
+
+    messages = []
+    async for entry in cursor:
+        messages.append(f"👤 {entry['full_name']} → {entry['message']}")
+
+    await update.message.reply_text(
+        "\n\n".join(messages) if messages else "📭 No entries found."
+    )
+
+# Help metadata
 def get_info():
     return {
         "name": "Sample Plugin 🧩",
-        "description": "A simple example plugin structure you can reuse."
+        "description": "Template plugin with MongoDB support for logging user input."
     }
 
-# Register handlers with the bot
+# Register command handlers
 def setup(app):
     app.add_handler(CommandHandler("sample", sample_command))
-    app.add_handler(CallbackQueryHandler(sample_help_callback, pattern="^plugin::sample$"))
+    app.add_handler(CommandHandler("samplelog", sample_show))
