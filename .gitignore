@@ -1,0 +1,46 @@
+# Python compiled files and cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Log files
+*.log
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# OS system files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE folders
+.vscode/
+.idea/
+
+# Environment variables and secrets
+.env
+.env.*
+bot_token.txt
+secrets.json
+
+# MongoDB local dumps (if used for backup)
+dump/
+
+# GitHub Actions cache/temp (if any)
+*.bak
+*.tmp
+
+# Python egg
+*.egg-info/
+dist/
+build/
+
+# Test or temporary files
+*.swp
+*.swo
+
+# Replit config (if used)
+.replit
