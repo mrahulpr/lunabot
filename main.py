@@ -1,48 +1,84 @@
 import os
 import importlib
-import asyncio
-import logging
+from typing import Dict, Any
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
+    Application,
     CommandHandler,
     CallbackQueryHandler,
     ContextTypes,
 )
+import logging
+from plugins import stop_workflows
+from plugins import db
 
-# Load .env
-load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
-SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID", "-1001234567890")
-
-# Log to file only
+# ----------- Logging -----------
 logging.basicConfig(
     filename="bot.log",
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    format="%(asctime)s - %(message)s",
     level=logging.INFO
 )
 
-# Import after env
-from plugins import db
+# ----------- Load .env -----------
+load_dotenv()
+TOKEN = os.getenv("BOT_TOKEN")
+SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID")
+PLUGINS: Dict[str, Dict[str, Any]] = {}
 
-# Load text files
+# ----------- Static Text Loaders -----------
 def load_text_file(filename: str) -> str:
     try:
         with open(filename, 'r', encoding='utf-8') as f:
             return f.read()
     except Exception as e:
-        return f"*⚠️ Error loading `{filename}`:* ```{str(e)}```"
+        return f"⚠️ Error loading {filename}: {e}"
 
 ABOUT_TEXT = load_text_file("about.txt")
 HELP_HEADER = load_text_file("help.txt")
 WELCOME_TEXT = load_text_file("welcome.txt")
 
-# UI buttons
+# ----------- Plugin Loader -----------
+def load_plugins(app: Application) -> None:
+    global PLUGINS
+    PLUGINS.clear()
+    plugin_dir = "plugins"
+    if not os.path.isdir(plugin_dir):
+        return
+
+    for file in os.listdir(plugin_dir):
+        if file.endswith(".py") and file != "__init__.py":
+            name = file[:-3]
+            try:
+                module = importlib.import_module(f"{plugin_dir}.{name}")
+                if hasattr(module, "get_info"):
+                    PLUGINS[name] = module.get_info() or {}
+                if hasattr(module, "setup"):
+                    module.setup(app)
+                print(f"✅ Loaded plugin: {name}")
+            except Exception as e:
+                import traceback
+                error_text = (
+                    f"❌ *Plugin {name} failed to load:*\n"
+                    f"`{str(e)}`\n\n"
+                    f"```{traceback.format_exc()}```"
+                )
+                try:
+                    from telegram import Bot
+                    bot = Bot(token=TOKEN)
+                    import asyncio
+                    asyncio.run(bot.send_message(chat_id=SUPPORT_CHAT_ID, text=error_text[:4096], parse_mode="MarkdownV2"))
+                except:
+                    pass
+
+# ----------- UI Markups -----------
 def build_main_menu_markup() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("😜 About Me", callback_data="info"),
-         InlineKeyboardButton("Help 🤗", callback_data="help")]
+        [
+            InlineKeyboardButton("😜 About Me", callback_data="info"),
+            InlineKeyboardButton("Help 🤗", callback_data="help"),
+        ]
     ])
 
 def build_help_keyboard() -> InlineKeyboardMarkup:
@@ -55,98 +91,95 @@ def build_about_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
     ])
 
-# Handlers
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# ----------- Handlers -----------
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         WELCOME_TEXT,
         parse_mode="MarkdownV2",
         reply_markup=build_main_menu_markup()
     )
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         HELP_HEADER,
         parse_mode="MarkdownV2",
         reply_markup=build_help_keyboard()
     )
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
     data = query.data
 
     if data == "main_menu":
-        await query.edit_message_text(WELCOME_TEXT, parse_mode="MarkdownV2", reply_markup=build_main_menu_markup())
+        await query.edit_message_text(
+            WELCOME_TEXT,
+            parse_mode="MarkdownV2",
+            reply_markup=build_main_menu_markup()
+        )
     elif data == "info":
-        await query.edit_message_text(ABOUT_TEXT, parse_mode="MarkdownV2", reply_markup=build_about_keyboard())
+        await query.edit_message_text(
+            ABOUT_TEXT,
+            parse_mode="MarkdownV2",
+            reply_markup=build_about_keyboard()
+        )
     elif data == "help":
-        await query.edit_message_text(HELP_HEADER, parse_mode="MarkdownV2", reply_markup=build_help_keyboard())
+        await query.edit_message_text(
+            HELP_HEADER,
+            parse_mode="MarkdownV2",
+            reply_markup=build_help_keyboard()
+        )
     else:
-        await query.edit_message_text("❓ *Unknown selection\\.*", parse_mode="MarkdownV2", reply_markup=build_main_menu_markup())
+        await query.edit_message_text(
+            "❓ Unknown selection.",
+            reply_markup=build_main_menu_markup()
+        )
 
-# Cron Job Example
+# ----------- Cron Job Example -----------
 async def my_cron_job(context: ContextTypes.DEFAULT_TYPE):
-    logging.info("Cron job triggered.")
+    print("🔁 Cron job executed.")
 
-def setup_cron_job(app):
-    for job in app.job_queue.get_jobs_by_name("main_cron"):
-        job.schedule_removal()
-    app.job_queue.run_repeating(my_cron_job, interval=3600, first=60, name="main_cron")
+def setup_cron_job(app: Application):
+    for old_job in app.job_queue.get_jobs_by_name("main_cron"):
+        old_job.schedule_removal()
 
-# Auto-load Plugins
-async def load_plugins(app):
-    plugin_dir = "plugins"
-    if not os.path.isdir(plugin_dir):
-        await db.send_error_to_support("*⚠️ Plugins folder not found\\.*")
-        return
+    app.job_queue.run_repeating(
+        my_cron_job,
+        interval=60 * 60,
+        first=120,
+        name="main_cron"
+    )
 
-    for file in os.listdir(plugin_dir):
-        if file.endswith(".py") and file != "__init__.py":
-            name = file[:-3]
-            try:
-                module = importlib.import_module(f"plugins.{name}")
-                if hasattr(module, "setup"):
-                    module.setup(app)
-                    await db.send_log(f"*✅ Loaded plugin:* `{name}`")
-                else:
-                    await db.send_error_to_support(f"*⚠️ No `setup()` found in `{name}` plugin*")
-            except Exception as e:
-                await db.send_error_to_support(f"*❌ Plugin `{name}` failed:* ```{str(e)}```")
-
-# Main Runner
-async def run_bot():
+# ----------- Startup -----------
+def main():
     if not TOKEN:
-        raise RuntimeError("❌ BOT_TOKEN not set")
+        raise RuntimeError("❌ BOT_TOKEN is not set.")
 
     app = ApplicationBuilder().token(TOKEN).build()
 
-    await db.init_db()
-    await load_plugins(app)
+    load_plugins(app)
+    stop_workflows.setup(app)
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    # Notify restart
     async def notify_restart(context: ContextTypes.DEFAULT_TYPE):
-        await context.bot.send_message(
-            chat_id=SUPPORT_CHAT_ID,
-            text="✅ *Bot restarted successfully*",
-            parse_mode="MarkdownV2"
-        )
+        try:
+            await context.bot.send_message(
+                chat_id=SUPPORT_CHAT_ID,
+                text="✅ *Bot restarted successfully*",
+                parse_mode="MarkdownV2"
+            )
+        except Exception as e:
+            print(f"❌ Couldn't send restart message: {e}")
 
-    app.job_queue.run_once(notify_restart, when=2)
+    app.job_queue.run_once(notify_restart, when=1)
     setup_cron_job(app)
 
-    logging.info("🚀 Bot is running via polling.")
-    await app.run_polling()
+    print("🚀 Bot is starting...")
+    logging.info("🚀 Bot is running.")
+    app.run_polling()
 
-# Entrypoint
 if __name__ == "__main__":
-    try:
-        asyncio.run(run_bot())
-    except Exception as e:
-        import traceback
-        asyncio.run(db.send_error_to_support(
-            f"*❌ Unhandled Exception:* ```{str(e)}\n\n{traceback.format_exc()}```"
-        ))
+    main()
