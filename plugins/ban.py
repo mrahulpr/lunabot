@@ -231,6 +231,11 @@ def get_info():
         "description": "Ban users with reason and undo with persistent log support."
     }
 
+async def test():
+    # Basic plugin health check
+    assert db is not None, "Database not initialized"
+
+
 def setup(app):
     """Sets up the command and callback handlers."""
     app.add_handler(CommandHandler("ban", ban_user))
