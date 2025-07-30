@@ -1,5 +1,8 @@
+   main()
 import os
 import importlib
+import asyncio
+import logging
 from typing import Dict, Any
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -10,25 +13,20 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
-import logging
-from plugins import stop_workflows,db
 
-
-
-
-# ----------- Logging -----------
-logging.basicConfig(
-    filename="bot.log",
-    format="%(asctime)s - %(message)s",
-    level=logging.INFO
-)
-
-# ----------- Load .env -----------
+# ---------- Load environment variables ----------
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 PLUGINS: Dict[str, Dict[str, Any]] = {}
 
-# ----------- Static Text Loaders -----------
+# ---------- Logging ----------
+logging.basicConfig(
+    filename="bot.log",
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
+
+# ---------- Static text loaders ----------
 def load_text_file(filename: str) -> str:
     try:
         with open(filename, 'r', encoding='utf-8') as f:
@@ -40,35 +38,11 @@ ABOUT_TEXT = load_text_file("about.txt")
 HELP_HEADER = load_text_file("help.txt")
 WELCOME_TEXT = load_text_file("welcome.txt")
 
-# ----------- Plugin Loader -----------
-def load_plugins(app: Application) -> None:
-    global PLUGINS
-    PLUGINS.clear()
-    plugin_dir = "plugins"
-    if not os.path.isdir(plugin_dir):
-        print("⚠️ No plugins folder found.")
-        return
-
-    for file in os.listdir(plugin_dir):
-        if file.endswith(".py") and file != "__init__.py":
-            name = file[:-3]
-            try:
-                module = importlib.import_module(f"{plugin_dir}.{name}")
-                if hasattr(module, "get_info"):
-                    PLUGINS[name] = module.get_info() or {}
-                if hasattr(module, "setup"):
-                    module.setup(app)
-                print(f"✅ Loaded plugin: {name}")
-            except Exception as e:
-                print(f"❌ Plugin load error [{name}]: {e}")
-
-# ----------- UI Markups -----------
+# ---------- UI Markups ----------
 def build_main_menu_markup() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("😜 About Me", callback_data="info"),
-            InlineKeyboardButton("Help 🤗", callback_data="help"),
-        ]
+        [InlineKeyboardButton("😜 About Me", callback_data="info"),
+         InlineKeyboardButton("Help 🤗", callback_data="help")]
     ])
 
 def build_help_keyboard() -> InlineKeyboardMarkup:
@@ -81,7 +55,7 @@ def build_about_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
     ])
 
-# ----------- Handlers -----------
+# ---------- Bot Handlers ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         WELCOME_TEXT,
@@ -125,7 +99,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             reply_markup=build_main_menu_markup()
         )
 
-# ----------- Cron Job Example -----------
+# ---------- Cron job example ----------
 async def my_cron_job(context: ContextTypes.DEFAULT_TYPE):
     print("🔁 Cron job executed.")
 
@@ -135,42 +109,73 @@ def setup_cron_job(app: Application):
 
     app.job_queue.run_repeating(
         my_cron_job,
-        interval=60 * 60,
+        interval=3600,  # 1 hour
         first=120,
         name="main_cron"
     )
 
-# ----------- Startup -----------
-def main():
+# ---------- Plugin Loader ----------
+def load_plugins(app: Application):
+    global PLUGINS
+    plugin_dir = "plugins"
+    PLUGINS.clear()
+
+    if not os.path.isdir(plugin_dir):
+        print("⚠️ No plugins folder found.")
+        return
+
+    for file in os.listdir(plugin_dir):
+        if file.endswith(".py") and file != "__init__.py":
+            name = file[:-3]
+            try:
+                module = importlib.import_module(f"plugins.{name}")
+                if hasattr(module, "setup"):
+                    module.setup(app)
+                if hasattr(module, "get_info"):
+                    PLUGINS[name] = module.get_info() or {}
+                print(f"✅ Loaded plugin: {name}")
+            except Exception as e:
+                print(f"❌ Plugin load error [{name}]: {e}")
+
+# ---------- Main Async App ----------
+async def run_bot():
     if not TOKEN:
-        raise RuntimeError("❌ BOT_TOKEN is not set.")
+        raise RuntimeError("❌ BOT_TOKEN is not set in .env or GitHub secrets")
+
+    from plugins import stop_workflows, db
+    await db.init_db()  # initialize MongoDB before starting bot
 
     app = ApplicationBuilder().token(TOKEN).build()
 
     load_plugins(app)
     stop_workflows.setup(app)
-    await init_db()  
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CallbackQueryHandler(button_handler))
 
+    # Notify support group after restart
     async def notify_restart(context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.bot.send_message(
-                chat_id=-1002379666380,
+                chat_id=os.getenv("SUPPORT_CHAT_ID", "-1001234567890"),
                 text="✅ <b>Bot restarted successfully</b>",
                 parse_mode="HTML"
             )
         except Exception as e:
-            print(f"❌ Couldn't send restart message: {e}")
+            print(f"❌ Could not notify support chat: {e}")
 
-    app.job_queue.run_once(notify_restart, when=1)
+    app.job_queue.run_once(notify_restart, when=2)
     setup_cron_job(app)
 
-    print("🚀 Bot is starting...")
+    print("🚀 Bot is running.")
     logging.info("🚀 Bot is running.")
-    app.run_polling()
+    await app.run_polling()
 
+# ---------- Entry Point ----------
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(run_bot())
+    except Exception as e:
+        logging.error(f"Unhandled Exception: {e}")
+        print(f"❌ {e}")
