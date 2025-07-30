@@ -159,4 +159,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(run_bot())
     except Exception as e:
-        asyncio.run(db.send_error_to_support(f"*❌ Unhandled Exception:* ```{str(e)}```"))        ))
+        asyncio.run(db.send_error_to_support(f"*❌ Unhandled Exception:* ```{str(e)}```"))
