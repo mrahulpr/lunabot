@@ -40,6 +40,7 @@ HELP_HEADER = load_text_file("help.txt")
 WELCOME_TEXT = load_text_file("welcome.txt")
 
 # ----------- Plugin Loader -----------
+
 def load_plugins(app: Application) -> None:
     global PLUGINS
     PLUGINS.clear()
@@ -48,22 +49,44 @@ def load_plugins(app: Application) -> None:
         print("⚠️ No plugins folder found.")
         return
 
+    loop = asyncio.get_event_loop()
+
     for file in os.listdir(plugin_dir):
         if file.endswith(".py") and file != "__init__.py":
             name = file[:-3]
             try:
                 module = importlib.import_module(f"{plugin_dir}.{name}")
-                if hasattr(module, "get_info"):
-                    PLUGINS[name] = module.get_info() or {}
+
+                # Plugin setup
                 if hasattr(module, "setup"):
                     module.setup(app)
-                print(f"✅ Loaded plugin: {name}")
+
+                # Plugin test (async)
+                if hasattr(module, "test"):
+                    try:
+                        loop.run_until_complete(module.test())
+                        loop.run_until_complete(
+                            db.send_log(f"✅ *Loaded plugin:* `{name}`")
+                        )
+                    except Exception as test_err:
+                        import traceback
+                        loop.run_until_complete(
+                            db.send_error_to_support(
+                                f"*❌ Plugin `{name}` test failed:*\n`{test_err}`\n```{traceback.format_exc()}```"
+                            )
+                        )
+                        continue  # Skip adding this plugin if test fails
+
+                if hasattr(module, "get_info"):
+                    PLUGINS[name] = module.get_info() or {}
+
             except Exception as e:
-                print(f"❌ Plugin load error [{name}]: {e}")
-                try:
-                    asyncio.create_task(db.send_error_to_support(f"*Plugin load error [{name}]*:\n```{e}```"))
-                except:
-                    pass
+                import traceback
+                loop.run_until_complete(
+                    db.send_error_to_support(
+                        f"*❌ Plugin `{name}` load error:*\n`{e}`\n```{traceback.format_exc()}```"
+                    )
+                )
 
 # ----------- UI Markups -----------
 def build_main_menu_markup() -> InlineKeyboardMarkup:
