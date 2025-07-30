@@ -150,9 +150,9 @@ async def run_bot():
     except Exception as e:
         await db.send_error_to_support(f"*❌ Could not notify support chat:* ```{str(e)}```")
 
-    # Start polling and run for ~9 minutes (exit before next cron starts)
+    
     logging.info("🚀 Bot is running via polling.")
-    await app.run_polling(stop_after=540)  # 9 minutes
+    await app.run_polling()
 
 # Entrypoint
 if __name__ == "__main__":
