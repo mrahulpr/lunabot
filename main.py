@@ -157,7 +157,7 @@ def main():
     if not TOKEN:
         raise RuntimeError("❌ BOT_TOKEN is not set.")
 
-    app = ApplicationBuilder().token(TOKEN).build()
+    app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
