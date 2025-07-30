@@ -161,7 +161,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CallbackQueryHandler(button_handler))  # general button handler
+    app.add_handler(CallbackQueryHandler(button_handler, pattern="^(info|help|main_menu)$"))  # general button handler
 
     setup_cron_job(app)
 
