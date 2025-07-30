@@ -1,14 +1,14 @@
 *📖 Help Menu*
 
 > *Plugins For All*  
-*/start* - Launch the bot  
-*/help* - Show help menu.  
-*/hack* - To make an animation of hacking someone.  
-*/id* - To Get id of a Chat.  
-*/ban* or */unban* - To Ban or Unban a User in a chat.
+*/start* - Launch the bot\. 
+*/help* - Show help menu\.  
+*/hack* - To make an animation of hacking someone\.  
+*/id* - To Get id of a Chat\.  
+*/ban* or */unban* - To Ban or Unban a User in a chat\.
 
 > *Plugins For Owner*  
-*/stopworkflows* - To Stop Some Unwanted Background Processes.  
-*/getdata* - To fetch information from Database.
+*/stopworkflows* - To Stop Some Unwanted Background Processes\.  
+*/getdata* - To fetch information from Database\.
 
-[©️ *Webotz*](https://t.me/webotz)
+[*©️ Webotz*](https://t.me/webotz)
