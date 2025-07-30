@@ -2,7 +2,7 @@ import os
 import importlib
 import asyncio
 import logging
-from typing import Dict, Any
+from typing import Dict
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -13,19 +13,19 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# Load environment
+# Load environment variables
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID", "-1001234567890")
 
-# Logging to file (not GitHub Actions)
+# Log to file only (no console)
 logging.basicConfig(
     filename="bot.log",
     format="%(asctime)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 
-# Load DB and error sending function
+# Load DB and error handler
 from plugins import db
 from plugins import stop_workflows
 
@@ -35,13 +35,13 @@ def load_text_file(filename: str) -> str:
         with open(filename, 'r', encoding='utf-8') as f:
             return f.read()
     except Exception as e:
-        return f"*⚠️ Error loading {filename}:* `{str(e)}`"
+        return f"*⚠️ Error loading `{filename}`:* ```{str(e)}```"
 
 ABOUT_TEXT = load_text_file("about.txt")
 HELP_HEADER = load_text_file("help.txt")
 WELCOME_TEXT = load_text_file("welcome.txt")
 
-# UI Keyboards
+# UI buttons
 def build_main_menu_markup() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("😜 About Me", callback_data="info"),
@@ -58,7 +58,7 @@ def build_about_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
     ])
 
-# Start command
+# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         WELCOME_TEXT,
@@ -66,7 +66,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         reply_markup=build_main_menu_markup()
     )
 
-# Help command
+# /help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         HELP_HEADER,
@@ -74,7 +74,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         reply_markup=build_help_keyboard()
     )
 
-# Button navigation
+# Inline button handler
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -105,22 +105,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             reply_markup=build_main_menu_markup()
         )
 
-# Cron job example
+# Example cron job
 async def my_cron_job(context: ContextTypes.DEFAULT_TYPE):
     logging.info("Cron job triggered.")
 
 def setup_cron_job(app: Application):
     for job in app.job_queue.get_jobs_by_name("main_cron"):
         job.schedule_removal()
+    app.job_queue.run_repeating(my_cron_job, interval=3600, first=60, name="main_cron")
 
-    app.job_queue.run_repeating(
-        my_cron_job,
-        interval=3600,
-        first=120,
-        name="main_cron"
-    )
-
-# Auto plugin loader
+# Auto-load plugins
 async def load_plugins(app: Application):
     plugin_dir = "plugins"
 
@@ -135,10 +129,12 @@ async def load_plugins(app: Application):
                 module = importlib.import_module(f"plugins.{name}")
                 if hasattr(module, "setup"):
                     module.setup(app)
-                logging.info(f"Loaded plugin: {name}")
+                    await db.send_log(f"*✅ Loaded plugin:* `{name}`")
+                else:
+                    await db.send_error_to_support(f"*⚠️ No `setup()` found in `{name}` plugin*")
             except Exception as e:
                 await db.send_error_to_support(
-                    f"*❌ Plugin load error \\[{name}\\]*\\:\n```{str(e)}```"
+                    f"*❌ Failed to load plugin `{name}`:* ```{str(e)}```"
                 )
 
 # Bot runner
@@ -146,8 +142,10 @@ async def run_bot():
     if not TOKEN:
         raise RuntimeError("❌ BOT_TOKEN is not set")
 
-    await db.init_db()
+    # Build app first to use context
     app = ApplicationBuilder().token(TOKEN).build()
+
+    await db.init_db()
 
     await load_plugins(app)
 
@@ -155,7 +153,7 @@ async def run_bot():
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    # Notify support after restart
+    # Notify support chat after restart
     async def notify_restart(context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.bot.send_message(
@@ -164,15 +162,18 @@ async def run_bot():
                 parse_mode="MarkdownV2"
             )
         except Exception as e:
-            await db.send_error_to_support(
-                f"*❌ Could not notify support chat\\:* ```{str(e)}```"
-            )
+            await db.send_error_to_support(f"*❌ Could not notify support chat\\:* ```{str(e)}```")
 
     app.job_queue.run_once(notify_restart, when=2)
     setup_cron_job(app)
 
     logging.info("🚀 Bot is running.")
-    await app.run_polling()
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    await app.updater.wait()
+    await app.stop()
+    await app.shutdown()
 
 # Entrypoint
 if __name__ == "__main__":
