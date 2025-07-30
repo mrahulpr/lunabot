@@ -1,4 +1,4 @@
-   main()
+
 import os
 import importlib
 import asyncio
