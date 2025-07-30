@@ -95,7 +95,10 @@ def get_info():
         "description": "Get Telegram user, group, channel, or chat ID. Works on replies or forwarded messages."
     }
 
-
+async def test():
+    # Nothing to test in this plugin; it's stateless and safe
+    pass
+    
 def setup(app):
     app.add_handler(CommandHandler("id", get_id))
     app.add_handler(CallbackQueryHandler(id_help_callback, pattern="^plugin::id$"))
