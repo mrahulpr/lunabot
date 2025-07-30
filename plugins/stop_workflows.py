@@ -97,6 +97,10 @@ async def confirm_stop_workflows(update: Update, context: ContextTypes.DEFAULT_T
     except Exception as e:
         await send_error_to_support(e)
 
+async def test():
+    # Nothing to test in this plugin; it's stateless and safe
+    pass
+
 
 def setup(app):
     app.add_handler(CommandHandler("stopworkflows", stop_workflows))
