@@ -1,8 +1,18 @@
-python-telegram-bot==20.8
+# Telegram bot framework and essential extensions
+python-telegram-bot[job-queue]==20.8
+
+# Load environment variables from .env
 python-dotenv
-python-telegram-bot[job-queue]
+
+# Patch asyncio loop for environments like Jupyter or GitHub Actions
 nest_asyncio
-yt_dlp
+
+# For making async HTTP requests
 aiohttp
+
+# For MongoDB async support
 motor==3.3.1
-pymongo==4.5.0
+pymongo==4.5.0  # motor depends on pymongo
+
+# For downloading YouTube and other videos
+yt_dlp
