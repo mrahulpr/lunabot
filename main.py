@@ -159,7 +159,6 @@ async def run_bot():
         except Exception as e:
             await db.send_error_to_support(f"*❌ Could not notify support chat:* ```{str(e)}```")
 
-    app.job_queue.run_once(notify_restart, when=2)
     setup_cron_job(app)
 
     logging.info("🚀 Bot running via polling.")
@@ -170,6 +169,7 @@ if __name__ == "__main__":
     try:
         asyncio.run(run_bot())
     except Exception as e:
+        import traceback
         asyncio.run(db.send_error_to_support(
-            f"*❌ Unhandled Exception:* ```{str(e)}```"
+            f"*❌ Unhandled Exception:* ```{str(e)}\n\n{traceback.format_exc()}```"
         ))
