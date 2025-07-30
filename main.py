@@ -134,10 +134,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             reply_markup=build_help_keyboard()
         )
     else:
-        await query.edit_message_text(
-            "❓ Unknown selection.",
-            reply_markup=build_main_menu_markup()
-        )
+        # Unknown callback — IGNORE to let plugin handlers deal with it
+        return
 
 # ----------- Cron Job Example -----------
 async def my_cron_job(context: ContextTypes.DEFAULT_TYPE):
@@ -163,7 +161,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(CallbackQueryHandler(button_handler))  # general button handler
 
     setup_cron_job(app)
 
