@@ -2,7 +2,6 @@ import os
 import importlib
 import asyncio
 import logging
-from typing import Dict
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -18,14 +17,14 @@ load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID", "-1001234567890")
 
-# Log to file only (no console)
+# Log to file only
 logging.basicConfig(
     filename="bot.log",
     format="%(asctime)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 
-# Load DB and error handler
+# Import DB and plugin-related functions
 from plugins import db
 from plugins import stop_workflows
 
@@ -41,7 +40,7 @@ ABOUT_TEXT = load_text_file("about.txt")
 HELP_HEADER = load_text_file("help.txt")
 WELCOME_TEXT = load_text_file("welcome.txt")
 
-# UI buttons
+# UI keyboards
 def build_main_menu_markup() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("😜 About Me", callback_data="info"),
@@ -58,7 +57,7 @@ def build_about_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
     ])
 
-# /start command
+# Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         WELCOME_TEXT,
@@ -66,7 +65,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         reply_markup=build_main_menu_markup()
     )
 
-# /help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         HELP_HEADER,
@@ -74,7 +72,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         reply_markup=build_help_keyboard()
     )
 
-# Inline button handler
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -105,16 +102,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             reply_markup=build_main_menu_markup()
         )
 
-# Example cron job
-async def my_cron_job(context: ContextTypes.DEFAULT_TYPE):
-    logging.info("Cron job triggered.")
-
-def setup_cron_job(app: Application):
-    for job in app.job_queue.get_jobs_by_name("main_cron"):
-        job.schedule_removal()
-    app.job_queue.run_repeating(my_cron_job, interval=3600, first=60, name="main_cron")
-
-# Auto-load plugins
+# Load plugins dynamically
 async def load_plugins(app: Application):
     plugin_dir = "plugins"
 
@@ -131,53 +119,44 @@ async def load_plugins(app: Application):
                     module.setup(app)
                     await db.send_log(f"*✅ Loaded plugin:* `{name}`")
                 else:
-                    await db.send_error_to_support(f"*⚠️ No `setup()` found in `{name}` plugin*")
+                    await db.send_error_to_support(f"*⚠️ No `setup()` in plugin `{name}`*")
             except Exception as e:
                 await db.send_error_to_support(
-                    f"*❌ Failed to load plugin `{name}`:* ```{str(e)}```"
+                    f"*❌ Plugin `{name}` failed to load:* ```{str(e)}```"
                 )
 
-# Bot runner
+# Run bot with polling
 async def run_bot():
     if not TOKEN:
         raise RuntimeError("❌ BOT_TOKEN is not set")
 
-    # Build app first to use context
-    app = ApplicationBuilder().token(TOKEN).build()
-
     await db.init_db()
 
-    await load_plugins(app)
+    app = ApplicationBuilder().token(TOKEN).build()
 
+    # Load plugins and handlers
+    await load_plugins(app)
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    # Notify support chat after restart
-    async def notify_restart(context: ContextTypes.DEFAULT_TYPE):
-        try:
-            await context.bot.send_message(
-                chat_id=SUPPORT_CHAT_ID,
-                text="✅ *Bot restarted successfully*",
-                parse_mode="MarkdownV2"
-            )
-        except Exception as e:
-            await db.send_error_to_support(f"*❌ Could not notify support chat\\:* ```{str(e)}```")
+    # Send restart message
+    try:
+        await app.bot.send_message(
+            chat_id=SUPPORT_CHAT_ID,
+            text="✅ *Bot restarted successfully*",
+            parse_mode="MarkdownV2"
+        )
+    except Exception as e:
+        await db.send_error_to_support(f"*❌ Could not notify support chat:* ```{str(e)}```")
 
-    app.job_queue.run_once(notify_restart, when=2)
-    setup_cron_job(app)
-
-    logging.info("🚀 Bot is running.")
-    await app.initialize()
-    await app.start()
-    await app.updater.start_polling()
-    await app.updater.wait()
-    await app.stop()
-    await app.shutdown()
+    # Start polling and run for ~9 minutes (exit before next cron starts)
+    logging.info("🚀 Bot is running via polling.")
+    await app.run_polling(stop_after=540)  # 9 minutes
 
 # Entrypoint
 if __name__ == "__main__":
     try:
         asyncio.run(run_bot())
     except Exception as e:
-        asyncio.run(db.send_error_to_support(f"*❌ Unhandled Exception\\:* ```{str(e)}```"))
+        asyncio.run(db.send_error_to_support(f"*❌ Unhandled Exception:* ```{str(e)}```"))        ))
