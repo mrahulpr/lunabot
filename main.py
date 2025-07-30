@@ -1,5 +1,7 @@
 import os
 import importlib
+import asyncio
+import logging
 from typing import Dict, Any
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -10,9 +12,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
-import logging
 from plugins import stop_workflows
-from plugins import db
 
 # ----------- Logging -----------
 logging.basicConfig(
@@ -24,7 +24,6 @@ logging.basicConfig(
 # ----------- Load .env -----------
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID")
 PLUGINS: Dict[str, Dict[str, Any]] = {}
 
 # ----------- Static Text Loaders -----------
@@ -45,6 +44,7 @@ def load_plugins(app: Application) -> None:
     PLUGINS.clear()
     plugin_dir = "plugins"
     if not os.path.isdir(plugin_dir):
+        print("⚠️ No plugins folder found.")
         return
 
     for file in os.listdir(plugin_dir):
@@ -58,19 +58,7 @@ def load_plugins(app: Application) -> None:
                     module.setup(app)
                 print(f"✅ Loaded plugin: {name}")
             except Exception as e:
-                import traceback
-                error_text = (
-                    f"❌ *Plugin {name} failed to load:*\n"
-                    f"`{str(e)}`\n\n"
-                    f"```{traceback.format_exc()}```"
-                )
-                try:
-                    from telegram import Bot
-                    bot = Bot(token=TOKEN)
-                    import asyncio
-                    asyncio.run(bot.send_message(chat_id=SUPPORT_CHAT_ID, text=error_text[:4096], parse_mode="MarkdownV2"))
-                except:
-                    pass
+                print(f"❌ Plugin load error [{name}]: {e}")
 
 # ----------- UI Markups -----------
 def build_main_menu_markup() -> InlineKeyboardMarkup:
@@ -167,9 +155,9 @@ def main():
     async def notify_restart(context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.bot.send_message(
-                chat_id=SUPPORT_CHAT_ID,
-                text="✅ *Bot restarted successfully*",
-                parse_mode="MarkdownV2"
+                chat_id=-1002379666380,
+                text="✅ <b>Bot restarted successfully</b>",
+                parse_mode="HTML"
             )
         except Exception as e:
             print(f"❌ Couldn't send restart message: {e}")
@@ -179,8 +167,10 @@ def main():
 
     print("🚀 Bot is starting...")
     logging.info("🚀 Bot is running.")
-    import asyncio
-    asyncio.run(app.run_polling())
+
+    # ✅ Fix for "no current event loop" in GitHub Actions Python 3.11+
+    asyncio.set_event_loop(asyncio.new_event_loop())
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
