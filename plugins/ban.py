@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
 from telegram.error import BadRequest
-from plugin.db import db  # MongoDB connection
+from plugins.db import db  # MongoDB connection
 
 # Define a timeout for the "undo" unban button
 UNBAN_TIMEOUT = timedelta(minutes=1)
