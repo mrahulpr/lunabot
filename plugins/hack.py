@@ -80,6 +80,10 @@ def get_info():
         "description": "Simulates a fake hacking prank with animations. Works only as a reply."
     }
 
+async def test():
+    # Nothing to test in this plugin; it's stateless and safe
+    pass
+
 def setup(app):
     app.add_handler(CommandHandler("hack", hack))
     app.add_handler(CallbackQueryHandler(hack_help_callback, pattern="^plugin::hack$"))
