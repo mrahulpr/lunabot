@@ -1,63 +1,120 @@
 import os
+import json
 from io import BytesIO
-from telegram import Update, InputFile
-from telegram.ext import CommandHandler, ContextTypes
-from plugins.db import db
+from motor.motor_asyncio import AsyncIOMotorClient
+from telegram import (
+    Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
+)
+from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
+from datetime import datetime
 
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+MONGO_URI = os.getenv("MONGO_URI")
 OWNER_ID = int(os.getenv("OWNER_ID"))
 SUPPORT_CHAT_ID = int(os.getenv("SUPPORT_CHAT_ID"))
 
+client = AsyncIOMotorClient(MONGO_URI)
+db = client["telegram_bot"]
+
 def setup(app):
-    app.add_handler(CommandHandler("getdata", get_data))
-    app.add_handler(CommandHandler("keys", list_keys))
+    app.add_handler(CommandHandler("getdata", getdata_command))
+    app.add_handler(CallbackQueryHandler(getdata_callback, pattern="^getdata:"))
 
-async def get_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# ----------- /getdata command -----------
+async def getdata_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id != SUPPORT_CHAT_ID:
-        return await update.message.reply_text("❌ This command only works in the *support chat*", parse_mode="MarkdownV2")
+        return await update.message.reply_text("❌ This command only works in the support chat.")
 
-    if update.effective_user.id != OWNER_ID:
-        return await update.message.reply_text("🚫 You are not authorized to use this command.")
+    keyboard = [[InlineKeyboardButton("📊 Get All Database Information", callback_data="getdata:menu")]]
+    await update.message.reply_text(
+        "🔍 Choose an option:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
-    if not context.args:
-        return await update.message.reply_text("❌ Usage: /getdata `<key>`", parse_mode="MarkdownV2")
+# ----------- Callback Handler -----------
+async def getdata_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.from_user.id
+    data = query.data.split(":", 1)[1]
+    await query.answer()
 
-    key = context.args[0]
-    data = await db.bot_data.find_one({"_id": key})
+    if data == "menu":
+        if user_id != OWNER_ID:
+            return await query.edit_message_text("⚠️ Only the owner can access this menu.")
+        return await show_collections_menu(query)
 
-    if not data:
-        return await update.message.reply_text(f"❌ No data found for `{key}`", parse_mode="MarkdownV2")
+    elif data.startswith("collection:"):
+        coll_name = data.split(":", 1)[1]
+        collection = db[coll_name]
+        docs = await collection.find({}).to_list(length=500)
 
-    data.pop("_id", None)
-    content = str(data)
+        if not docs:
+            return await query.edit_message_text(f"📂 *{coll_name}* collection is empty.", parse_mode="MarkdownV2")
 
-    try:
-        formatted = f"*🔍 Data for `{key}`:*\n```{content}```"
-        if len(formatted) < 3500:
-            await update.message.reply_text(formatted, parse_mode="MarkdownV2")
+        text = "\n\n".join(format_document(doc) for doc in docs)
+        if len(text) < 4096:
+            await query.edit_message_text(
+                text=f"📄 *Data in `{coll_name}`:*\n\n{text}",
+                parse_mode="MarkdownV2",
+                reply_markup=get_navigation("menu")
+            )
         else:
-            raise ValueError("Too long")
-    except Exception:
-        # Fallback to text file
-        file = BytesIO(content.encode("utf-8"))
-        file.name = f"{key}_data.txt"
-        await update.message.reply_document(
-            document=InputFile(file),
-            caption=f"📄 Data for `{key}`",
-            parse_mode="MarkdownV2"
-        )
+            file = InputFile(BytesIO(text.encode()), filename=f"{coll_name}_data.txt")
+            await query.edit_message_text(
+                f"📄 *Data in `{coll_name}` is too large. Sending as file:*",
+                parse_mode="MarkdownV2",
+                reply_markup=get_navigation("menu")
+            )
+            await query.message.reply_document(file)
 
-async def list_keys(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.id != SUPPORT_CHAT_ID:
-        return await update.message.reply_text("❌ This command only works in the *support chat*", parse_mode="MarkdownV2")
+    elif data == "menu":
+        return await show_collections_menu(query)
 
-    if update.effective_user.id != OWNER_ID:
-        return await update.message.reply_text("🚫 You are not authorized to use this command.")
+    elif data == "close":
+        return await query.delete_message()
 
-    keys_cursor = db.bot_data.find({}, {"_id": 1})
-    keys = [doc["_id"] async for doc in keys_cursor]
+# ----------- Format MongoDB Document -----------
+def format_document(doc):
+    doc = dict(doc)
+    doc.pop("_id", None)
+    parts = []
+    for k, v in doc.items():
+        if isinstance(v, datetime):
+            v = v.isoformat()
+        parts.append(f"*{k}*: `{str(v)}`")
+    return "\n".join(parts)
 
-    if not keys:
-        return await update.message.reply_text("❌ No keys found in the database.")
+# ----------- Show Collections Menu -----------
+async def show_collections_menu(query):
+    collections = await db.list_collection_names()
+    if not collections:
+        return await query.edit_message_text("⚠️ No collections found in the database.")
 
-    formatted_keys = "\n".join(f"• `{k}`" for k in keys)
-    await update.message.reply_text(f"*🗂️ Available Keys:*\n{formatted_keys}", parse_mode="MarkdownV2")
+    # Arrange in rows of 3
+    buttons = []
+    row = []
+    for name in collections:
+        row.append(InlineKeyboardButton(name, callback_data=f"getdata:collection:{name}"))
+        if len(row) == 3:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+
+    buttons.append([
+        InlineKeyboardButton("🔙 Back", callback_data="getdata:menu"),
+        InlineKeyboardButton("❌ Close", callback_data="getdata:close"),
+    ])
+
+    await query.edit_message_text(
+        "📚 *Select a collection:*",
+        parse_mode="MarkdownV2",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+
+# ----------- Navigation Buttons -----------
+def get_navigation(back_to):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 Back", callback_data=f"getdata:{back_to}")],
+        [InlineKeyboardButton("❌ Close", callback_data="getdata:close")]
+    ])
