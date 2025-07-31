@@ -99,7 +99,8 @@ def setup(app):
 
 async def test():
     assert OPENAI_API_KEY is not None, "OPENAI_API_KEY not set"
-    await db.command("ping")        new_group_enabled = new_doc.get("group_enabled", False)
+    await db.command("ping")        
+    new_group_enabled = new_doc.get("group_enabled", False)
 
         buttons = [
             [
