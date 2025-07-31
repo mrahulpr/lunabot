@@ -1,5 +1,7 @@
 import os
 import importlib
+import asyncio
+import logging
 from typing import Dict, Any
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -10,8 +12,8 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
-import logging
 from plugins import stop_workflows
+from plugins.db import db, send_log, send_error_to_support  # for error reporting
 
 # ----------- Logging -----------
 logging.basicConfig(
@@ -37,27 +39,42 @@ ABOUT_TEXT = load_text_file("about.txt")
 HELP_HEADER = load_text_file("help.txt")
 WELCOME_TEXT = load_text_file("welcome.txt")
 
-# ----------- Plugin Loader -----------
-def load_plugins(app: Application) -> None:
+# ----------- Async Plugin Loader -----------
+async def load_plugins(app: Application) -> None:
     global PLUGINS
     PLUGINS.clear()
     plugin_dir = "plugins"
     if not os.path.isdir(plugin_dir):
-        print("⚠️ No plugins folder found.")
         return
+
+    import traceback
 
     for file in os.listdir(plugin_dir):
         if file.endswith(".py") and file != "__init__.py":
             name = file[:-3]
             try:
                 module = importlib.import_module(f"{plugin_dir}.{name}")
-                if hasattr(module, "get_info"):
-                    PLUGINS[name] = module.get_info() or {}
+
                 if hasattr(module, "setup"):
                     module.setup(app)
-                print(f"✅ Loaded plugin: {name}")
+
+                if hasattr(module, "test"):
+                    try:
+                        await module.test()
+                        await send_log(f"✅ *Plugin loaded:* `{name}`")
+                    except Exception as test_err:
+                        await send_error_to_support(
+                            f"*❌ Plugin `{name}` test failed:*\n`{test_err}`\n```{traceback.format_exc()}```"
+                        )
+                        continue
+
+                if hasattr(module, "get_info"):
+                    PLUGINS[name] = module.get_info() or {}
+
             except Exception as e:
-                print(f"❌ Plugin load error [{name}]: {e}")
+                await send_error_to_support(
+                    f"*❌ Plugin `{name}` load error:*\n`{e}`\n```{traceback.format_exc()}```"
+                )
 
 # ----------- UI Markups -----------
 def build_main_menu_markup() -> InlineKeyboardMarkup:
@@ -117,10 +134,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             reply_markup=build_help_keyboard()
         )
     else:
-        await query.edit_message_text(
-            "❓ Unknown selection.",
-            reply_markup=build_main_menu_markup()
-        )
+        # Unknown callback — IGNORE to let plugin handlers deal with it
+        return
 
 # ----------- Cron Job Example -----------
 async def my_cron_job(context: ContextTypes.DEFAULT_TYPE):
@@ -137,32 +152,33 @@ def setup_cron_job(app: Application):
         name="main_cron"
     )
 
-# ----------- Startup -----------
+# ----------- Main Function -----------
 def main():
     if not TOKEN:
         raise RuntimeError("❌ BOT_TOKEN is not set.")
 
-    app = ApplicationBuilder().token(TOKEN).build()
-
-    load_plugins(app)
-    stop_workflows.setup(app)
+    app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(CallbackQueryHandler(button_handler, pattern="^(info|help|main_menu)$"))  # general button handler
 
-    async def notify_restart(context: ContextTypes.DEFAULT_TYPE):
-        try:
-            await context.bot.send_message(
-                chat_id=-1002379666380,
-                text="✅ <b>Bot restarted successfully</b>",
-                parse_mode="HTML"
-            )
-        except Exception as e:
-            print(f"❌ Couldn't send restart message: {e}")
-
-    app.job_queue.run_once(notify_restart, when=1)
     setup_cron_job(app)
+
+    async def startup_tasks(context: ContextTypes.DEFAULT_TYPE):
+        await load_plugins(app)
+        try:
+            stop_workflows.setup(app)
+        except Exception as e:
+            await send_error_to_support(f"*Plugin setup error:*\n```{e}```")
+
+        await context.bot.send_message(
+            chat_id=-1002379666380,
+            text="✅ <b>Bot restarted successfully</b>",
+            parse_mode="HTML"
+        )
+
+    app.job_queue.run_once(startup_tasks, when=1)
 
     print("🚀 Bot is starting...")
     logging.info("🚀 Bot is running.")
