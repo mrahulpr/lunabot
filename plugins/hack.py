@@ -2,7 +2,7 @@ import asyncio
 import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
-from .db import send_error_to_support  # log any errors
+from .db import send_error_to_support
 
 OWNER_ID = int(os.getenv("OWNER_ID"))
 
@@ -26,43 +26,28 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_to_message_id=update.message.reply_to_message.message_id
         )
 
-        animation_1 = [
-            " Installing Files To Hacked Private Server...",
-            " Target Selected.",
-            " Installing... 4%\n█▒▒▒▒▒▒▒▒▒▒▒▒",
-            " Installing... 20%\n███▒▒▒▒▒▒▒▒▒▒",
-            " Installing... 52%\n█████████▒▒▒▒",
-            " Installing... 100%\n████████████",
-            " Uploading payload to remote server...",
-        ]
-        for line in animation_1:
-            await asyncio.sleep(0.7)
-            await msg.edit_text(line)
-
         await asyncio.sleep(1)
+        await msg.edit_text("Installing Files To Hacked Private Server...\nTarget Selected...\nInstalling... 20%")
+        await asyncio.sleep(1.2)
+        await msg.edit_text("Installing... 52%\n█████████▒▒▒▒\nUploading payload to remote server...")
+        await asyncio.sleep(1.2)
         await msg.edit_text("🧬 Connecting to Telegram internal APIs...")
 
-        animation_2 = [
-            "`root@anon:~# ls`",
-            "`usr/ ghost/ codes/`",
-            "`touch exploit.sh`",
-            "`exploit.sh deployed.`",
-            "`executing exploit...`",
-            "`extracting tokens...`",
-            "`dumping messages...`",
-            "`creating pdf of chat logs...`"
-        ]
-        for line in animation_2:
-            await asyncio.sleep(0.6)
-            await msg.edit_text(line, parse_mode="MarkdownV2")
+        await asyncio.sleep(1.2)
+        await msg.edit_text(
+            "```root@anon:~# ls\nusr/ ghost/ codes/\ntouch exploit.sh\nexecuting exploit...\nextracting tokens...```",
+            parse_mode="MarkdownV2"
+        )
 
         await asyncio.sleep(1.5)
-        final_msg = (
-            "*✅ Hack Complete\\!*\n"
-            "🔒 *Data archived\\.*\n"
-            "📄 *Download link:* [Open file](https://drive.google.com/file/d/1JNA0HY1v8ClBDU9PhmyQ-z8KuLgvteT5/view?usp=sharing)"
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("📄 Open Hacked File", url="https://drive.google.com/file/d/1JNA0HY1v8ClBDU9PhmyQ-z8KuLgvteT5/view?usp=sharing")
+        ]])
+        await msg.edit_text(
+            "*✅ Hack Complete\\!*\n🔒 *Data archived\\.*",
+            parse_mode="MarkdownV2",
+            reply_markup=keyboard
         )
-        await msg.edit_text(final_msg, parse_mode="MarkdownV2")
 
     except Exception as e:
         import traceback
@@ -87,11 +72,10 @@ async def hack_help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
 def get_info():
     return {
         "name": "Hack 💻",
-        "description": "Simulates a fake hacking prank with animations. Works only as a reply."
+        "description": "Simulates a Real hacking prank with animations. Works only as a reply."
     }
 
 async def test():
-    # No database or required preconditions to test
     pass
 
 def setup(app):
