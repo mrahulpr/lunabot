@@ -31,4 +31,5 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
           SUPPORT_CHAT_ID: ${{ secrets.SUPPORT_CHAT_ID }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python main.py
