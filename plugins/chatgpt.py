@@ -148,10 +148,11 @@ def get_info():
 
 
 async def test():
-    assert OPENAI_API_KEY, "ChatGPT API key not set"
-    await db.command("ping")    except Exception:
+    try:
+        assert OPENAI_API_KEY, "ChatGPT API key not set"
+        await db.command("ping")
+    except Exception:
         return "⚠️ Error getting reply from ChatGPT."
-
 
 def setup(app):
     app.add_handler(CommandHandler("chatgpt", chatgpt_command))
