@@ -3,6 +3,9 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
 from .db import send_error_to_support  # Import your error handler
 
+
+OWNER_ID = int(os.getenv("OWNER_ID"))
+
 async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Simulates a fake hacking sequence on the user being replied to.
@@ -28,11 +31,9 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         
         # A fun check for the bot's owner.
-        if target.id == int(context.bot_data.get("OWNER_ID", 0)):
-            return await update.message.reply_text(
-                "🫣 I will hack my owner\\.\\.\\. please don't tell him\\!", 
-                parse_mode="MarkdownV2"
-            )
+        if target.id == OWNER_ID:
+            return await update.message.reply_text("🫣 I will hack my owner... please don't tell him!")
+
 
         # Send the initial message, starting the code block.
         msg = await update.message.reply_text(
