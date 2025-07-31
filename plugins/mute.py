@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
-from telegram.constants import ChatPermissions
+from telegram import ChatPermissions
 from plugins.db import db, send_error_to_support
 
 DEFAULT_DURATION = 60 * 60  # 1 hour in seconds
