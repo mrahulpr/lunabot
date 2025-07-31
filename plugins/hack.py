@@ -55,7 +55,8 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Installing payload... 10% 🟩⬜⬜⬜⬜⬜⬜⬜⬜⬜",
             "Installing payload... 25% 🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜",
             "Installing payload... 67% 🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜",
-            "Installing payload... 95% 🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜",
+            "Installing payload... 91% 🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜",
+            "Installing payload... 100% 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩",
             "Uploading payload...",
             "Finalizing connection...",
             "Generating exploit link...",
@@ -89,7 +90,7 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(
             "> Target compromised\\. Click below to access the panel\\.",
             reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("🕵️ View Hacked Panel", url="[https://example.com/hacked](https://example.com/hacked)")]]
+                [[InlineKeyboardButton("🕵️ View Hacked Panel", url="https://example.com/hacked")]]
             ),
             parse_mode="MarkdownV2"
         )
@@ -131,7 +132,11 @@ def get_info():
         "name": "Hack 💻",
         "description": "Simulates a fake hacking prank with animations. Works only as a reply."
     }
-
+    
+# Required plugin test() function
+async def test():
+    assert True  # Just a placeholder test to ensure plugin loads
+    
 
 def setup(app):
     """Adds the command and callback handlers to the application."""
