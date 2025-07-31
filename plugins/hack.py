@@ -2,7 +2,8 @@ import asyncio
 import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
-from .db import send_error_to_support
+from telegram.helpers import escape_markdown
+from .db import send_error_to_support  # Must send full traceback to support
 
 OWNER_ID = int(os.getenv("OWNER_ID"))
 
@@ -17,58 +18,52 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if target.id == me.id:
             return await update.message.reply_text("🤖 I don't hack myself... nice try 😂.")
+
         if target.id == OWNER_ID:
             return await update.message.reply_text("🫣 I will hack my owner... please don't tell him!")
 
         msg = await update.message.reply_text(
-            "🧠 *Initiating hack sequence...*",
+            escape_markdown("🧠 Initiating hack sequence...", version=2),
             parse_mode="MarkdownV2",
             reply_to_message_id=update.message.reply_to_message.message_id
         )
 
-        log = []
-        steps = [
-            "🔍 Scanning target...",
-            "✅ Target locked.",
-            "💻 Connecting to secured server...",
-            "🔐 Bypassing firewall (Layer 1)...",
-            "🔐 Bypassing firewall (Layer 2)...",
-            "🔐 Bypassing firewall (Layer 3)...",
-            "🔓 Access granted.",
-            "📁 Installing backdoor...",
-            "📡 Uploading payload...",
-            "📦 Installing... 10%\n████▒▒▒▒▒▒▒▒",
-            "📦 Installing... 25%\n██████▒▒▒▒▒▒",
-            "📦 Installing... 67%\n███████████▒",
-            "📦 Installing... 95%\n█████████████▒",
-            "📦 Installing... 100%\n██████████████",
-            "💣 Executing remote exploit...",
-            "`anon@ghost:~$ ls -a`",
-            "`ghost/ exploit.sh  secrets.txt`",
-            "`chmod +x exploit.sh`",
-            "`./exploit.sh --run`",
-            "`Extracting Telegram tokens...`",
-            "`Decrypting chat history...`",
-            "`Packing logs...`",
+        # ✨ Advanced animation with fewer edits (bundled lines)
+        animation_steps = [
+            "🔍 Scanning target\\.\\.\\.\n🔍 Scanning target\\.\\.\\.\n🎯 Target locked\\.",
+            "🔗 Connecting to secured server\\.\\.\\.\n🛡️ Bypassing firewall 1\\.\\.\\.",
+            "🛡️ Bypassing firewall 2\\.\\.\\.\n🛡️ Bypassing firewall 3\\.\\.\\.",
+            "📥 Installing\\.\\.\\. 10\\%\n█████▒▒▒▒▒▒\nUploading payload\\.\\.\\.",
+            "📥 Installing\\.\\.\\. 25\\%\n████████▒▒▒\nInjecting backdoor\\.\\.\\.",
+            "📥 Installing\\.\\.\\. 67\\%\n███████████▒\nAccessing system core\\.\\.\\.",
+            "📥 Installing\\.\\.\\. 95\\%\n█████████████▒\nHijacking sessions\\.\\.\\.",
+            "📥 Installing\\.\\.\\. 100\\%\n██████████████\nExfiltrating data\\.\\.\\.",
+            "🧬 Connecting to Telegram internal APIs\\.\\.\\.",
+            "`root@anon:~# ls`\n`usr/ ghost/ codes/`",
+            "`touch exploit.sh`\n`exploit.sh deployed.`",
+            "`executing exploit...`\n`extracting tokens...`",
+            "`dumping messages...`\n`creating pdf of chat logs...`",
         ]
 
-        for step in steps:
-            log.append(step)
-            text = "\n".join(log)
-            await msg.edit_text(text, parse_mode="MarkdownV2")
-            await asyncio.sleep(0.9)
+        for step in animation_steps:
+            await asyncio.sleep(1.1)
+            await msg.edit_text(escape_markdown(step, version=2), parse_mode="MarkdownV2")
 
         await asyncio.sleep(1.5)
-
-        final_text = "*✅ Hack Complete\\!*\n🔒 *All data archived successfully\\.*"
-        keyboard = InlineKeyboardMarkup([[
-            InlineKeyboardButton("📁 Open Hacked File", url="https://drive.google.com/file/d/1JNA0HY1v8ClBDU9PhmyQ-z8KuLgvteT5/view?usp=sharing")
-        ]])
-        await msg.edit_text(final_text, parse_mode="MarkdownV2", reply_markup=keyboard)
+        final_text = (
+            "*✅ Hack Complete\\!*\n"
+            "🔒 *Data archived\\.*"
+        )
+        button = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("📄 Open Archive", url="https://drive.google.com/file/d/1JNA0HY1v8ClBDU9PhmyQ-z8KuLgvteT5/view?usp=sharing")]]
+        )
+        await msg.edit_text(final_text, parse_mode="MarkdownV2", reply_markup=button)
 
     except Exception as e:
         import traceback
-        await send_error_to_support(f"*❌ Error in hack plugin:*\n`{e}`\n```{traceback.format_exc()}```")
+        await send_error_to_support(
+            f"*❌ Error in hack plugin:*\n`{e}`\n```{traceback.format_exc()}```"
+        )
 
 async def hack_help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -89,10 +84,11 @@ async def hack_help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
 def get_info():
     return {
         "name": "Hack 💻",
-        "description": "Simulates a fake hacking prank with cascading terminal animation. Works only as a reply."
+        "description": "Simulates a fake hacking prank with animations. Works only as a reply."
     }
 
 async def test():
+    # No test needed here; just a dummy function
     pass
 
 def setup(app):
