@@ -23,33 +23,34 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = await update.message.reply_text("🧠 Initiating hack...", reply_to_message_id=update.message.reply_to_message.message_id)
 
         sequence = [
-            "Scanning target",
-            "Scanning target\nTarget locked",
-            "Connecting to secured server",
-            "Bypassing firewall 1",
-            "Bypassing firewall 1\nBypassing firewall 2",
-            "Bypassing firewall 1\nBypassing firewall 2\nBypassing firewall 3",
-            "Installing... 10%\nUploading payload to remote server...",
-            "Installing... 25%\nUploading payload to remote server...",
-            "Installing... 67%\nUploading payload to remote server...",
-            "Installing... 95%\nUploading payload to remote server...",
-            "Installing... 100%\nPayload deployed",
-            "Extracting data...",
-            "Dumping messages...",
-            "Generating PDF report...",
+            "🔍 Scanning target...",
+            "🔍 Scanning target...\n🎯 Target locked",
+            "🔗 Connecting to secured server...",
+            "🛡️ Bypassing firewall 1...",
+            "🛡️ Bypassing firewall 1...\n🛡️ Bypassing firewall 2...",
+            "🛡️ Bypassing firewall 1...\n🛡️ Bypassing firewall 2...\n🛡️ Bypassing firewall 3...",
+
+            "💾 Installing... 10%\n🟩⬜⬜⬜⬜⬜⬜⬜⬜⬜",
+            "💾 Installing... 25%\n🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜",
+            "💾 Installing... 67%\n🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜",
+            "💾 Installing... 95%\n🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜",
+            "💾 Installing... 100%\n🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩\n🚀 Payload deployed",
+
+            "📦 Extracting data...",
+            "💬 Dumping messages...",
+            "📄 Generating PDF report...",
         ]
 
-        max_lines = 4
+        max_lines = 6
         log = []
         for step in sequence:
             log += step.split("\n")
             if len(log) > max_lines:
                 log = log[-max_lines:]
-            animated_text = "\n".join(f"> {line}" for line in log)
+            animated_text = "```\n" + "\n".join(log) + "\n```"
             await msg.edit_text(animated_text)
-            await asyncio.sleep(0.9)
+            await asyncio.sleep(0.85)
 
-        # Final message with button
         final_keyboard = InlineKeyboardMarkup(
             [[InlineKeyboardButton("📄 Open Hacked File", url="https://drive.google.com/file/d/1JNA0HY1v8ClBDU9PhmyQ-z8KuLgvteT5/view?usp=sharing")]]
         )
