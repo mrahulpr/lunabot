@@ -7,7 +7,10 @@ import os
 import traceback
 
 # Load your ChatGPT API key from secrets or env
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Make sure it's set in GitHub secrets
+import os
+from openai import AsyncOpenAI
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 # Settings collection
