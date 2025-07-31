@@ -9,6 +9,7 @@ import traceback
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
+
 async def chatgpt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         keyboard = [
@@ -24,6 +25,7 @@ async def chatgpt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         await send_error_to_support(traceback.format_exc())
 
+
 async def handle_chatgpt_toggle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         query = update.callback_query
@@ -33,10 +35,9 @@ async def handle_chatgpt_toggle(update: Update, context: ContextTypes.DEFAULT_TY
         data = query.data.split(":")[1]
 
         if data == "user":
-            user_entry = await db.chatgpt_users.find_one({"user_id": user_id})
-            if user_entry:
+            entry = await db.chatgpt_users.find_one({"user_id": user_id})
+            if entry:
                 await db.chatgpt_users.delete_one({"user_id": user_id})
-                await query.edit_message_reply_markup(reply_markup=query.message.reply_markup)
                 await query.answer("❌ Disabled for you")
             else:
                 await db.chatgpt_users.insert_one({"user_id": user_id})
@@ -44,14 +45,13 @@ async def handle_chatgpt_toggle(update: Update, context: ContextTypes.DEFAULT_TY
 
         elif data == "group":
             member = await context.bot.get_chat_member(chat_id, user_id)
-            if not member.status in ["creator", "administrator"]:
+            if member.status not in ["creator", "administrator"]:
                 await query.answer("Only admins can enable group-wide ChatGPT.", show_alert=True)
                 return
 
-            group_entry = await db.chatgpt_groups.find_one({"chat_id": chat_id})
-            if group_entry:
+            entry = await db.chatgpt_groups.find_one({"chat_id": chat_id})
+            if entry:
                 await db.chatgpt_groups.delete_one({"chat_id": chat_id})
-                await query.edit_message_reply_markup(reply_markup=query.message.reply_markup)
                 await query.answer("❌ Disabled for this group")
             else:
                 await db.chatgpt_groups.insert_one({"chat_id": chat_id})
@@ -60,12 +60,14 @@ async def handle_chatgpt_toggle(update: Update, context: ContextTypes.DEFAULT_TY
     except Exception:
         await send_error_to_support(traceback.format_exc())
 
+
 async def handle_incoming_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         message = update.effective_message
         user_id = message.from_user.id
         chat_id = message.chat_id
 
+        # Only respond if enabled
         is_user_enabled = await db.chatgpt_users.find_one({"user_id": user_id})
         is_group_enabled = await db.chatgpt_groups.find_one({"chat_id": chat_id})
 
@@ -78,9 +80,10 @@ async def handle_incoming_message(update: Update, context: ContextTypes.DEFAULT_
 
         reply = await get_chatgpt_response(user_text)
         if reply:
-            await message.reply_text(f"```{reply}```", parse_mode="Markdown")
+            await message.reply_text(f"```\n{reply}\n```", parse_mode="Markdown")
     except Exception:
         await send_error_to_support(traceback.format_exc())
+
 
 async def get_chatgpt_response(text: str) -> str:
     try:
@@ -89,11 +92,26 @@ async def get_chatgpt_response(text: str) -> str:
             messages=[{"role": "user", "content": text}]
         )
         return response.choices[0].message.content.strip()
-    except Exception as e:
+    except Exception:
         return "⚠️ Error getting reply from ChatGPT."
+
 
 def setup(app):
     app.add_handler(CommandHandler("chatgpt", chatgpt_command))
+    app.add_handler(CallbackQueryHandler(handle_chatgpt_toggle, pattern="^chatgpt:"))
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_incoming_message))
+
+
+def get_info():
+    return {
+        "name": "ChatGPT Plugin 🤖",
+        "description": "ChatGPT replies to messages when enabled by user or admin."
+    }
+
+
+async def test():
+    assert OPENAI_API_KEY is not None, "OPENAI_API_KEY not set"
+    await db.command("ping")    app.add_handler(CommandHandler("chatgpt", chatgpt_command))
     app.add_handler(CallbackQueryHandler(handle_chatgpt_toggle, pattern="chatgpt:"))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_incoming_message))
 
