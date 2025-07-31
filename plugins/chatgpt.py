@@ -111,6 +111,25 @@ def get_info():
 
 async def test():
     assert OPENAI_API_KEY is not None, "OPENAI_API_KEY not set"
+    await db.command("ping")    except Exception:
+        return "⚠️ Error getting reply from ChatGPT."
+
+
+def setup(app):
+    app.add_handler(CommandHandler("chatgpt", chatgpt_command))
+    app.add_handler(CallbackQueryHandler(handle_chatgpt_toggle, pattern="^chatgpt:"))
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_incoming_message))
+
+
+def get_info():
+    return {
+        "name": "ChatGPT Plugin 🤖",
+        "description": "ChatGPT replies to messages when enabled by user or admin."
+    }
+
+
+async def test():
+    assert OPENAI_API_KEY is not None, "OPENAI_API_KEY not set"
     await db.command("ping")    
     app.add_handler(CommandHandler("chatgpt", chatgpt_command))
     app.add_handler(CallbackQueryHandler(handle_chatgpt_toggle, pattern="chatgpt:"))
