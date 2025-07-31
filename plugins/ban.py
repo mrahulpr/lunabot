@@ -3,7 +3,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
 from telegram.error import BadRequest
 from plugins.db import db
-from plugins.helpers import send_error_to_support
+from plugins.db import send_error_to_support
 import traceback
 
 async def resolve_user_argument(context: ContextTypes.DEFAULT_TYPE, chat_id: int, arg: str):
