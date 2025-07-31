@@ -9,90 +9,147 @@ import traceback
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
+SETTINGS = db.chatgpt_settings  # Used for storing user/group toggle state
+
 
 async def chatgpt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        keyboard = [
+        user = update.effective_user
+        chat = update.effective_chat
+        doc = await SETTINGS.find_one({"chat_id": chat.id}) or {}
+        enabled_users = doc.get("enabled_users", [])
+        group_enabled = doc.get("group_enabled", False)
+
+        buttons = [
             [
-                InlineKeyboardButton("🧠 Enable for me only", callback_data="chatgpt:user"),
-                InlineKeyboardButton("🌍 Enable in group for all", callback_data="chatgpt:group"),
+                InlineKeyboardButton(
+                    f"{'✅ ' if user.id in enabled_users else ''}Enable for me only",
+                    callback_data="chatgpt_toggle_user"
+                ),
+                InlineKeyboardButton(
+                    f"{'✅ ' if group_enabled else ''}Enable in group for all",
+                    callback_data="chatgpt_toggle_group"
+                ) if await is_admin(context, chat.id, user.id) else None
             ]
         ]
+        buttons = [[b for b in row if b] for row in buttons if any(row)]
+
         await update.message.reply_text(
-            "Enable ChatGPT reply mode:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            "ChatGPT toggle options:",
+            reply_markup=InlineKeyboardMarkup(buttons)
         )
     except Exception:
         await send_error_to_support(traceback.format_exc())
 
 
-async def handle_chatgpt_toggle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def chatgpt_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         query = update.callback_query
         await query.answer()
-        user_id = query.from_user.id
-        chat_id = query.message.chat_id
-        data = query.data.split(":")[1]
+        user = query.from_user
+        chat = query.message.chat
+        data = query.data
 
-        if data == "user":
-            entry = await db.chatgpt_users.find_one({"user_id": user_id})
-            if entry:
-                await db.chatgpt_users.delete_one({"user_id": user_id})
+        doc = await SETTINGS.find_one({"chat_id": chat.id}) or {}
+        enabled_users = doc.get("enabled_users", [])
+        group_enabled = doc.get("group_enabled", False)
+
+        if data == "chatgpt_toggle_user":
+            if user.id in enabled_users:
+                enabled_users.remove(user.id)
                 await query.answer("❌ Disabled for you")
             else:
-                await db.chatgpt_users.insert_one({"user_id": user_id})
+                enabled_users.append(user.id)
                 await query.answer("✅ Enabled for you")
+            await SETTINGS.update_one({"chat_id": chat.id}, {"$set": {"enabled_users": enabled_users}}, upsert=True)
 
-        elif data == "group":
-            member = await context.bot.get_chat_member(chat_id, user_id)
-            if member.status not in ["creator", "administrator"]:
-                await query.answer("Only admins can enable group-wide ChatGPT.", show_alert=True)
+        elif data == "chatgpt_toggle_group":
+            if not await is_admin(context, chat.id, user.id):
+                await query.answer("Only admins can toggle group setting.", show_alert=True)
                 return
+            group_enabled = not group_enabled
+            await SETTINGS.update_one({"chat_id": chat.id}, {"$set": {"group_enabled": group_enabled}}, upsert=True)
+            await query.answer("✅ Toggled group-wide setting")
 
-            entry = await db.chatgpt_groups.find_one({"chat_id": chat_id})
-            if entry:
-                await db.chatgpt_groups.delete_one({"chat_id": chat_id})
-                await query.answer("❌ Disabled for this group")
-            else:
-                await db.chatgpt_groups.insert_one({"chat_id": chat_id})
-                await query.answer("✅ Enabled for this group")
+        # Update buttons
+        new_doc = await SETTINGS.find_one({"chat_id": chat.id}) or {}
+        new_enabled_users = new_doc.get("enabled_users", [])
+        new_group_enabled = new_doc.get("group_enabled", False)
+
+        buttons = [
+            [
+                InlineKeyboardButton(
+                    f"{'✅ ' if user.id in new_enabled_users else ''}Enable for me only",
+                    callback_data="chatgpt_toggle_user"
+                ),
+                InlineKeyboardButton(
+                    f"{'✅ ' if new_group_enabled else ''}Enable in group for all",
+                    callback_data="chatgpt_toggle_group"
+                ) if await is_admin(context, chat.id, user.id) else None
+            ]
+        ]
+        buttons = [[b for b in row if b] for row in buttons if any(row)]
+
+        await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(buttons))
 
     except Exception:
-        await send_error_to_support(traceback.format_exc())
+        await send_error_to_support(f"chatgpt_callback error:\n`{traceback.format_exc()}`")
 
 
-async def handle_incoming_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def is_admin(context, chat_id, user_id):
     try:
-        message = update.effective_message
-        user_id = message.from_user.id
-        chat_id = message.chat_id
+        member = await context.bot.get_chat_member(chat_id, user_id)
+        return member.status in ["administrator", "creator"]
+    except:
+        return False
 
-        # Only respond if enabled
-        is_user_enabled = await db.chatgpt_users.find_one({"user_id": user_id})
-        is_group_enabled = await db.chatgpt_groups.find_one({"chat_id": chat_id})
 
-        if not (is_user_enabled or is_group_enabled):
+async def chatgpt_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if not update.message or not update.effective_chat or not update.effective_user:
             return
 
-        user_text = message.text
-        if not user_text:
+        chat_id = update.effective_chat.id
+        user_id = update.effective_user.id
+        text = update.message.text
+        if not text or text.startswith("/"):
             return
 
-        reply = await get_chatgpt_response(user_text)
-        if reply:
-            await message.reply_text(f"```\n{reply}\n```", parse_mode="Markdown")
-    except Exception:
-        await send_error_to_support(traceback.format_exc())
+        doc = await SETTINGS.find_one({"chat_id": chat_id}) or {}
+        enabled_users = doc.get("enabled_users", [])
+        group_enabled = doc.get("group_enabled", False)
 
+        if user_id not in enabled_users and not group_enabled:
+            return
 
-async def get_chatgpt_response(text: str) -> str:
-    try:
-        response = await openai.chat.completions.create(
+        # Call OpenAI
+        res = await openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": text}]
         )
-        return response.choices[0].message.content.strip()
+        reply = res.choices[0].message.content.strip()
+
+        await update.message.reply_text(f"```\n{reply}\n```", parse_mode="Markdown")
     except Exception:
+        await send_error_to_support(f"chatgpt_reply error:\n`{traceback.format_exc()}`")
+
+
+def setup(app):
+    app.add_handler(CommandHandler("chatgpt", chatgpt_command))
+    app.add_handler(CallbackQueryHandler(chatgpt_callback, pattern="^chatgpt_toggle_"))
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), chatgpt_reply))
+
+
+def get_info():
+    return {
+        "name": "ChatGPT Plugin 🤖",
+        "description": "ChatGPT replies to messages when enabled by user or admin."
+    }
+
+
+async def test():
+    assert OPENAI_API_KEY, "ChatGPT API key not set"
+    await db.command("ping")    except Exception:
         return "⚠️ Error getting reply from ChatGPT."
 
 
