@@ -93,16 +93,6 @@ async def warn_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown"
             )
 
-            await db.warn_undo.insert_one({
-                "chat_id": chat.id,
-                "user_id": target_user.id,
-                "warned_by": sender.id,
-                "undo_token": undo_token,
-                "message_id": sent.message_id,
-                "created_at": datetime.utcnow(),
-                "amount": amount,
-            })
-
             await asyncio.sleep(60)
 
             try:
