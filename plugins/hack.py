@@ -1,7 +1,10 @@
 import asyncio
 import os
+import traceback
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.constants import ChatAction
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.error import RetryAfter
 from .db import send_error_to_support
 
 OWNER_ID = int(os.getenv("OWNER_ID"))
@@ -20,45 +23,54 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if target.id == OWNER_ID:
             return await update.message.reply_text("🫣 I will hack my owner... please don't tell him!")
 
+        await bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
         msg = await update.message.reply_text("🧠 Initiating hack...", reply_to_message_id=update.message.reply_to_message.message_id)
 
-        sequence = [
+        steps = [
             "🔍 Scanning target...",
-            "🔍 Scanning target...\n🎯 Target locked",
+            "🎯 Target locked",
             "🔗 Connecting to secured server...",
             "🛡️ Bypassing firewall 1...",
-            "🛡️ Bypassing firewall 1...\n🛡️ Bypassing firewall 2...",
-            "🛡️ Bypassing firewall 1...\n🛡️ Bypassing firewall 2...\n🛡️ Bypassing firewall 3...",
-
-            "💾 Installing... 10%\n🟩⬜⬜⬜⬜⬜⬜⬜⬜⬜",
-            "💾 Installing... 25%\n🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜",
-            "💾 Installing... 67%\n🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜",
-            "💾 Installing... 95%\n🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜",
-            "💾 Installing... 100%\n🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩\n🚀 Payload deployed",
-
+            "🛡️ Bypassing firewall 2...",
+            "🛡️ Bypassing firewall 3...",
+            "💾 Installing... 10% 🟩⬜⬜⬜⬜⬜⬜⬜⬜⬜",
+            "💾 Installing... 25% 🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜",
+            "💾 Installing... 67% 🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜",
+            "💾 Installing... 95% 🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜",
+            "💾 Installing... 100% 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩",
+            "🚀 Payload deployed",
             "📦 Extracting data...",
             "💬 Dumping messages...",
             "📄 Generating PDF report...",
         ]
 
-        max_lines = 6
-        log = []
-        for step in sequence:
-            log += step.split("\n")
-            if len(log) > max_lines:
-                log = log[-max_lines:]
-            animated_text = "```\n" + "\n".join(log) + "\n```"
-            await msg.edit_text(animated_text)
-            await asyncio.sleep(0.85)
+        buffer = []
+        max_lines = 5
 
-        final_keyboard = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("📄 Open Hacked File", url="https://drive.google.com/file/d/1JNA0HY1v8ClBDU9PhmyQ-z8KuLgvteT5/view?usp=sharing")]]
+        for line in steps:
+            buffer.append(line)
+            if len(buffer) > max_lines:
+                buffer.pop(0)
+
+            quoted = "\n".join(f"> {l}" for l in buffer)
+
+            while True:
+                try:
+                    await msg.edit_text(quoted)
+                    break
+                except RetryAfter as e:
+                    await asyncio.sleep(e.retry_after + 1)
+
+            await asyncio.sleep(0.9)
+
+        keyboard = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("📄 View Hacked File", url="https://drive.google.com/file/d/1JNA0HY1v8ClBDU9PhmyQ-z8KuLgvteT5/view?usp=sharing")]]
         )
-        await msg.edit_text("✅ Hack complete. Data archived.", reply_markup=final_keyboard)
+        await msg.edit_text("✅ Hack complete. Data archived.", reply_markup=keyboard)
 
     except Exception as e:
-        import traceback
-        await send_error_to_support(f"*❌ Error in hack plugin:*\n`{e}`\n```{traceback.format_exc()}```")
+        tb = traceback.format_exc()
+        await send_error_to_support(f"*❌ Error in hack plugin:*\n`{e}`\n```{tb}```")
 
 async def hack_help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -69,17 +81,17 @@ async def hack_help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "💻 Hack Plugin\n\n"
             "Simulates a fake hacking sequence as a prank.\n\n"
             "Usage:\n"
-            "/hack – Reply to a user's message to initiate a fake hack."
+            "`/hack` – Reply to a user's message to prank-hack them."
         )
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     except Exception as e:
-        import traceback
-        await send_error_to_support(f"*❌ Hack help button error:*\n`{e}`\n```{traceback.format_exc()}```")
+        tb = traceback.format_exc()
+        await send_error_to_support(f"*❌ Hack help button error:*\n`{e}`\n```{tb}```")
 
 def get_info():
     return {
         "name": "Hack 💻",
-        "description": "Simulates a fake hacking prank with animations. Works only as a reply."
+        "description": "Fake hacking animation as prank. Must reply to a user."
     }
 
 async def test():
