@@ -1,4 +1,5 @@
 import asyncio
+import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
 from .db import send_error_to_support  # Import your error handler
