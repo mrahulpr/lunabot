@@ -3,8 +3,8 @@ import traceback
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 from openai import AsyncOpenAI
-from core.db import db
-from plugins.helpers import send_error_to_support
+from plugins.db import db
+from plugins.db import send_error_to_support
 
 # --- Environment and API Setup ---
 # Fetches the OpenAI API key from your environment variables.
