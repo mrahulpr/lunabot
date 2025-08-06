@@ -12,7 +12,6 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
-from plugins import stop_workflows
 from plugins.db import db, send_log, send_error_to_support  # for error reporting
 
 # ----------- Logging -----------
@@ -25,6 +24,9 @@ logging.basicConfig(
 # ----------- Load .env -----------
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
+SUPPORT_CHAT_ID=os.getenv("SUPPORT_CHAT_ID")
+
+
 PLUGINS: Dict[str, Dict[str, Any]] = {}
 
 # ----------- Static Text Loaders -----------
@@ -137,20 +139,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         # Unknown callback — IGNORE to let plugin handlers deal with it
         return
 
-# ----------- Cron Job Example -----------
-async def my_cron_job(context: ContextTypes.DEFAULT_TYPE):
-    print("🔁 Cron job executed.")
 
-def setup_cron_job(app: Application):
-    for old_job in app.job_queue.get_jobs_by_name("main_cron"):
-        old_job.schedule_removal()
-
-    app.job_queue.run_repeating(
-        my_cron_job,
-        interval=60 * 60,
-        first=120,
-        name="main_cron"
-    )
 
 # ----------- Main Function -----------
 def main():
@@ -163,7 +152,7 @@ def main():
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CallbackQueryHandler(button_handler, pattern="^(info|help|main_menu)$"))  # general button handler
 
-    setup_cron_job(app)
+
 
     async def startup_tasks(context: ContextTypes.DEFAULT_TYPE):
         await load_plugins(app)
@@ -173,7 +162,7 @@ def main():
             await send_error_to_support(f"*Plugin setup error:*\n```{e}```")
 
         await context.bot.send_message(
-            chat_id=-1002379666380,
+            chat_id=SUPPORT_CHAT_ID,
             text="✅ <b>Bot restarted successfully</b>",
             parse_mode="HTML"
         )
