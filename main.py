@@ -154,18 +154,15 @@ def main():
 
 
 
-    async def startup_tasks(context: ContextTypes.DEFAULT_TYPE):
-        await load_plugins(app)
-        try:
-            stop_workflows.setup(app)
-        except Exception as e:
-            await send_error_to_support(f"*Plugin setup error:*\n```{e}```")
 
-        await context.bot.send_message(
-            chat_id=SUPPORT_CHAT_ID,
-            text="✅ <b>Bot restarted successfully</b>",
-            parse_mode="HTML"
-        )
+async def startup_tasks(application):
+    await load_plugins(application)
+
+    await application.bot.send_message(
+        chat_id=SUPPORT_CHAT_ID,
+        text="✅ <b>Bot restarted successfully</b>",
+        parse_mode="HTML"
+    )
 
     app.job_queue.run_once(startup_tasks, when=1)
 
