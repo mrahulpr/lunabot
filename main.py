@@ -160,10 +160,9 @@ def main():
 
 
 
-async def startup_tasks(application):
-    await load_plugins(application)
-
-    await application.bot.send_message(
+async def startup_tasks(context: ContextTypes.DEFAULT_TYPE):
+    await load_plugins(app)
+    await context.bot.send_message(
         chat_id=SUPPORT_CHAT_ID,
         text="✅ <b>Bot restarted successfully</b>",
         parse_mode="HTML"
