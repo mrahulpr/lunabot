@@ -147,7 +147,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 # ----------- Main Function -----------
-async def main():
+def main():
     if not TOKEN:
         raise RuntimeError("❌ BOT_TOKEN is not set.")
 
@@ -158,22 +158,20 @@ async def main():
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CallbackQueryHandler(button_handler, pattern="^(info|help|main_menu)$"))
 
-    # Load plugins before polling
-    await load_plugins(application)
+    async def post_init(app: Application):
+        await load_plugins(app)
+        await app.bot.send_message(
+            chat_id=SUPPORT_CHAT_ID,
+            text="✅ <b>Bot restarted successfully</b>",
+            parse_mode="HTML"
+        )
 
-    # Send startup message
-    await application.bot.send_message(
-        chat_id=SUPPORT_CHAT_ID,
-        text="✅ <b>Bot restarted successfully</b>",
-        parse_mode="HTML"
-    )
+    # Set post-init tasks
+    application.post_init = post_init
 
     print("🚀 Bot is starting...")
     logging.info("🚀 Bot is running.")
-
-    # Start polling
-    await application.run_polling()
+    application.run_polling()
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
