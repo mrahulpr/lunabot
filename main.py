@@ -102,7 +102,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         WELCOME_TEXT,
         parse_mode="MarkdownV2",
-        reply_markup=build_main_menu_markup()
+        reply_markup=build_main_menu_markup(),
         disable_web_page_preview=True
     )
 
@@ -110,7 +110,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text(
         HELP_HEADER,
         parse_mode="MarkdownV2",
-        reply_markup=build_help_keyboard()
+        reply_markup=build_help_keyboard(),
         disable_web_page_preview=True
     )
 
@@ -123,21 +123,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_text(
             WELCOME_TEXT,
             parse_mode="MarkdownV2",
-            reply_markup=build_main_menu_markup()
+            reply_markup=build_main_menu_markup(),
             disable_web_page_preview=True
         )
     elif data == "info":
         await query.edit_message_text(
             ABOUT_TEXT,
             parse_mode="MarkdownV2",
-            reply_markup=build_about_keyboard()
+            reply_markup=build_about_keyboard(),
             disable_web_page_preview=True
         )
     elif data == "help":
         await query.edit_message_text(
             HELP_HEADER,
             parse_mode="MarkdownV2",
-            reply_markup=build_help_keyboard()
+            reply_markup=build_help_keyboard(),
             disable_web_page_preview=True
         )
     else:
