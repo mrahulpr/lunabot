@@ -147,32 +147,33 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 # ----------- Main Function -----------
-def main():
+async def main():
     if not TOKEN:
         raise RuntimeError("❌ BOT_TOKEN is not set.")
 
-    app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
+    application = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CallbackQueryHandler(button_handler, pattern="^(info|help|main_menu)$"))  # general button handler
+    # Add handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CallbackQueryHandler(button_handler, pattern="^(info|help|main_menu)$"))
 
+    # Load plugins before polling
+    await load_plugins(application)
 
-
-
-async def startup_tasks(context: ContextTypes.DEFAULT_TYPE):
-    await load_plugins(app)
-    await context.bot.send_message(
+    # Send startup message
+    await application.bot.send_message(
         chat_id=SUPPORT_CHAT_ID,
         text="✅ <b>Bot restarted successfully</b>",
         parse_mode="HTML"
     )
 
-    app.job_queue.run_once(startup_tasks, when=1)
-
     print("🚀 Bot is starting...")
     logging.info("🚀 Bot is running.")
-    app.run_polling()
+
+    # Start polling
+    await application.run_polling()
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())
