@@ -170,6 +170,145 @@ async def test():
     try:
         await db.command("ping")
     except Exception as e:
+        raise RuntimeError("MongoDB not connected") from e        parts.append(f"*{escape_md(str(k))}*: `{escape_md(str(v))}`")
+    return "\n".join(parts)
+
+# --------- Show Collections Menu ---------
+async def show_collections_menu(query):
+    try:
+        collections = await db.list_collection_names()
+        if not collections:
+            return await query.edit_message_text("⚠️ No collections found in the database.")
+
+        buttons = []
+        row = []
+        for name in collections:
+            row.append(InlineKeyboardButton(name, callback_data=f"getdata:collection:{name}"))
+            if len(row) == 3:
+                buttons.append(row)
+                row = []
+        if row:
+            buttons.append(row)
+
+        buttons.append([
+            InlineKeyboardButton("🔙 Back", callback_data="getdata:menu"),
+            InlineKeyboardButton("❌ Close", callback_data="getdata:close"),
+        ])
+
+        await query.edit_message_text(
+            "📚 *Select a collection:*",
+            parse_mode="MarkdownV2",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await send_error_to_support(e)
+
+# --------- Navigation Buttons ---------
+def get_navigation(back_to):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 Back", callback_data=f"getdata:{back_to}")],
+        [InlineKeyboardButton("❌ Close", callback_data="getdata:close")]
+    ])
+
+# --------- MarkdownV2 Escape ---------
+def escape_md(text: str) -> str:
+    for char in ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']:
+        text = text.replace(char, f"\\{char}")
+    return text
+
+# --------- Send Error to Support ---------
+async def send_error_to_support(error: Exception):
+    try:
+        tb = traceback.format_exc()
+        await db.send_error_to_support(
+            f"*❌ Error in /getdata plugin:*\n`{str(error)}`\n```{tb}```"
+        )
+    except:
+        pass
+
+# --------- Plugin Test Function ---------
+async def test():
+    try:
+        await db.command("ping")
+    except Exception as e:
+        raise RuntimeError("MongoDB not connected") from e    except Exception as e:
+        await send_error_to_support(e)
+
+# --------- Format MongoDB Document ---------
+def format_document(doc):
+    doc = dict(doc)
+    doc.pop("_id", None)
+    parts = []
+    for k, v in doc.items():
+        if isinstance(v, datetime):
+            v = v.isoformat()
+        parts.append(f"*{escape_md(str(k))}*: `{escape_md(str(v))}`")
+    return "\n".join(parts)
+
+# --------- Show Collections Menu ---------
+async def show_collections_menu(query):
+    try:
+        collections = await db.list_collection_names()
+        if not collections:
+            return await query.edit_message_text("⚠️ No collections found in the database.")
+
+        buttons = []
+        row = []
+        for name in collections:
+            row.append(InlineKeyboardButton(name, callback_data=f"getdata:collection:{name}"))
+            if len(row) == 3:
+                buttons.append(row)
+                row = []
+        if row:
+            buttons.append(row)
+
+        buttons.append([
+            InlineKeyboardButton("🔙 Back", callback_data="getdata:start"),
+            InlineKeyboardButton("❌ Close", callback_data="getdata:close"),
+        ])
+
+        await query.edit_message_text(
+            "📚 *Select a collection:*",
+            parse_mode="MarkdownV2",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await send_error_to_support(e)
+
+# --------- Navigation Buttons ---------
+def get_navigation(back_to):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 Back", callback_data=f"getdata:{back_to}")],
+        [InlineKeyboardButton("❌ Close", callback_data="getdata:close")]
+    ])
+
+# --------- MarkdownV2 Escape ---------
+def escape_md(text: str) -> str:
+    for char in ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']:
+        text = text.replace(char, f"\\{char}")
+    return text
+
+# --------- Send Error to Support ---------
+async def send_error_to_support(error: Exception):
+    try:
+        tb = traceback.format_exc()
+        msg = (
+            f"*❌ Error in /getdata plugin:*\n"
+            f"`{str(error)}`\n"
+            f"```{tb}```"
+        )[:4000]
+
+        from telegram import Bot
+        bot = Bot(BOT_TOKEN)
+        await bot.send_message(chat_id=SUPPORT_CHAT_ID, text=msg, parse_mode="MarkdownV2")
+    except:
+        pass
+
+# --------- Plugin Test Function ---------
+async def test():
+    try:
+        await db.command("ping")
+    except Exception as e:
         raise RuntimeError("MongoDB not connected") 
         from e        
         parts.append(f"*{escape_md(str(k))}*: `{escape_md(str(v))}`")
