@@ -170,7 +170,9 @@ async def test():
     try:
         await db.command("ping")
     except Exception as e:
-        raise RuntimeError("MongoDB not connected") from e        parts.append(f"*{escape_md(str(k))}*: `{escape_md(str(v))}`")
+        raise RuntimeError("MongoDB not connected") 
+        from e        
+        parts.append(f"*{escape_md(str(k))}*: `{escape_md(str(v))}`")
     return "\n".join(parts)
 
 # --------- Show Collections Menu ---------
