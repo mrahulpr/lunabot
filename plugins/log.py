@@ -1,73 +1,47 @@
-from telegram import Update, Bot
-from telegram.ext import MessageHandler, filters, ContextTypes
-from plugins.db import db
-import os
+from telegram import Update
+from telegram.ext import ContextTypes, MessageHandler, filters
+from config import SUPPORT_CHAT_ID
+from db import db
 import traceback
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID")
-
-
-async def send_error_to_support(error: Exception, where="userlog"):
-    if not BOT_TOKEN or not SUPPORT_CHAT_ID:
-        return
-    bot = Bot(BOT_TOKEN)
-    try:
-        await bot.send_message(
-            chat_id=SUPPORT_CHAT_ID,
-            text=(
-                f"❗️ *Plugin Error: {where}*\n"
-                f"`{str(error)}`\n\n"
-                f"```{traceback.format_exc()}```"
-            )[:4000],
-            parse_mode="MarkdownV2"
-        )
-    except Exception:
-        pass
-
+users_col = db["users"]
 
 async def log_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user = update.effective_user
-        if not user or user.is_bot:
+        if not user:
             return
 
-        user_id = user.id
-        full_name = user.full_name.replace("_", "\\_")
+        user_data = {
+            "_id": user.id,
+            "full_name": user.full_name,
+        }
 
-        exists = await db.users.find_one({"user_id": user_id})
-        if not exists:
-            await db.users.insert_one({
-                "user_id": user_id,
-                "full_name": user.full_name
-            })
+        await users_col.update_one({"_id": user.id}, {"$set": user_data}, upsert=True)
 
-            bot = context.bot
-            await bot.send_message(
-                chat_id=SUPPORT_CHAT_ID,
-                text=f"📃 *New User Joined*\n🆔 `{user_id}`\n👤 *Name:* {full_name}",
-                parse_mode="MarkdownV2"
-            )
+        await context.bot.send_message(
+            chat_id=SUPPORT_CHAT_ID,
+            text=f"👤 *New user logged:*\nID: `{user.id}`\nName: `{user.full_name}`",
+            parse_mode="Markdown"
+        )
 
     except Exception as e:
-        await send_error_to_support(e, "log_user")
+        await send_error_to_support(e)
 
+# Error reporter
+async def send_error_to_support(error: Exception):
+    tb = traceback.format_exc()
+    from config import app
+    await app.bot.send_message(chat_id=SUPPORT_CHAT_ID, text=f"*User Logger Error:*\n```{tb}```", parse_mode="Markdown")
 
 def setup(app):
-    app.add_handler(MessageHandler(filters.ALL, log_user))
-
+    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, log_user))
 
 def get_info():
-    return {
-        "name": "User Logger 👤",
-        "description": "Logs new users and notifies support chat."
-    }
+    return {"name": "userlogger", "description": "Logs all new users to MongoDB and support chat"}
 
-
-# Required plugin test() function
 async def test():
     try:
-        # Ping MongoDB to ensure collection is accessible
-        await db.users.find_one({})
+        await db.command("ping")
     except Exception as e:
-        await send_error_to_support(e, "userlog.test")
+        raise RuntimeError("MongoDB not connected") from e
