@@ -1,10 +1,11 @@
 from telegram import Update
 from telegram.ext import ContextTypes, MessageHandler, filters
-from config import SUPPORT_CHAT_ID
 from db import db
 import traceback
 
 users_col = db["users"]
+
+SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID")
 
 async def log_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
