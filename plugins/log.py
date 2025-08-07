@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import ContextTypes, MessageHandler, filters
-from db import db
+from plugins.db import db
 import traceback
 
 users_col = db["users"]
