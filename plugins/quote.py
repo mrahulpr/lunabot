@@ -1,48 +1,69 @@
-from telegram import Update, InputFile
-from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters
-from PIL import Image, ImageDraw, ImageFont
+import os
 import io
+from PIL import Image, ImageDraw, ImageFont
+from telegram import Update
+from telegram.ext import CommandHandler, ContextTypes
 from plugins.db import send_error_to_support
 
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"  # or custom
+
+FONT_PATH = os.path.join("assets", "fonts", "DejaVuSans.ttf")
+
 
 async def quotely(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not update.message.reply_to_message:
-            await update.message.reply_text("❌ You must reply to a message to quote it.")
+            await update.message.reply_text("⚠️ Please reply to a message to quote it.")
             return
-        
+
         replied = update.message.reply_to_message
-        text = replied.text or replied.caption or "⚠️ No text found"
-        username = replied.from_user.full_name
+        text = replied.text or replied.caption
+
+        if not text:
+            await update.message.reply_text("⚠️ Cannot quote empty or non-text messages.")
+            return
+
+        username = replied.from_user.first_name or "Unknown"
 
         # Create image
-        img = Image.new("RGB", (800, 200), color=(255, 255, 255))
+        img = Image.new("RGB", (600, 300), color="#2f3136")
         draw = ImageDraw.Draw(img)
 
-        font = ImageFont.truetype(FONT_PATH, 28)
-        draw.text((30, 40), f"{username}:", font=font, fill=(0, 0, 0))
-        draw.text((30, 90), text, font=font, fill=(50, 50, 50))
+        font_text = ImageFont.truetype(FONT_PATH, 28)
+        font_user = ImageFont.truetype(FONT_PATH, 24)
 
-        # Save image to memory
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        img_bytes.seek(0)
+        draw.text((30, 40), text, font=font_text, fill="white")
+        draw.text((30, 220), f"— {username}", font=font_user, fill="#999")
 
-        await update.message.reply_photo(photo=InputFile(img_bytes, filename="quote.png"))
-    
+        # Crop to square (Telegram stickers are square-shaped by default)
+        img = img.crop((0, 0, 300, 300))
+
+        # Convert to .webp for sticker
+        output = io.BytesIO()
+        img.save(output, format="WEBP")
+        output.name = "quote.webp"
+        output.seek(0)
+
+        await update.message.reply_sticker(sticker=output)
+
     except Exception as e:
-        await send_error_to_support(f"❌ Error in /q: {e}")
-        await update.message.reply_text("⚠️ Failed to generate quote image.")
+        await send_error_to_support(f"❌ Error in /q: `{str(e)}`")
+        await update.message.reply_text("⚠️ Failed to generate quote sticker.")
+
+
+def get_info():
+    return {
+        "name": "Quotely",
+        "description": "Turn replied messages into sticker-style quotes using /q"
+    }
+
 
 def setup(app):
     app.add_handler(CommandHandler("q", quotely))
 
-def get_info():
-    return {
-        "name": "Quotely Image",
-        "description": "Convert messages to quote-style images using /q"
-    }
 
 async def test():
-    pass  # No DB needed for this one
+    # This will check that the font file exists and can be loaded
+    try:
+        ImageFont.truetype(FONT_PATH, 24)
+    except Exception as e:
+        raise RuntimeError(f"[quotely] Font error: {e}")
