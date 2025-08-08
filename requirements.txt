@@ -9,10 +9,7 @@ nest_asyncio
 
 # For making async HTTP requests
 aiohttp
-
-# For MongoDB async support
 motor==3.3.1
 pymongo==4.5.0  # motor depends on pymongo
 
-# For downloading YouTube and other videos
-openai>=1.0.0
+Pillow
