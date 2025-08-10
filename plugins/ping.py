@@ -19,7 +19,7 @@ async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await message.edit_text(
-        f"✅ Pong!\n📡 Ping: `{ping_ms} ms`",
+        f"✅ *Pong!*\n📡 *Ping: {ping_ms} ms*",
         parse_mode="Markdown",
         reply_markup=reply_markup
     )
@@ -44,25 +44,32 @@ async def test_speed_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     # Show final results
     await query.edit_message_text(
-        f"📊 **Speed Test Results**\n"
-        f"🖥 Server: `{results['server']}`\n"
-        f"📡 Ping: `{results['ping']} ms`\n"
-        f"⬇ Download: `{results['download']} Mbps`\n"
-        f"⬆ Upload: `{results['upload']} Mbps`",
-        parse_mode="Markdown"
+        f"📊 *Speed Test Results*\n\n"
+        f">🖥 Server: `{results['server']}`\n"
+        f">📡 Ping: `{results['ping']} ms`\n"
+        f">⬇ Download: `{results['download']} Mbps`\n"
+        f">⬆ Upload: `{results['upload']} Mbps`",
+        parse_mode="MarkdownV2"
     )
+
 
 # Animation function
 async def animate_loading(context, msg):
-    dots = ["", ".", "..", "..."]
+    dots = ["•", "••", "•••", "••••"]
     i = 0
     while True:
         await asyncio.sleep(0.5)
         try:
-            await msg.edit_text(f"🚀 Running speed test{dots[i % len(dots)]}\nPlease wait ⏳")
+            await msg.edit_text(f"🚀 Running <b>speed test</b> {dots[i % len(dots)]}\n\n<b>Please wait </b>⏳")
+            parse_mode=HTML
             i += 1
         except:
             break
+
+
+async def test():
+    # Nothing to test in this plugin; it's stateless and safe
+    pass
 
 # Actual speed test
 def run_speed_test():
@@ -86,6 +93,9 @@ def get_info():
         "description": "Checks ping and server's internet speed."
     }
 
+def setup(app):
+    app.add_handler(CommandHandler("ping", ping_command))
+    app.add_handler(CallbackQueryHandler(test_speed_callback, pattern="^test_speed$"))
 def setup(app):
     app.add_handler(CommandHandler("ping", ping_command))
     app.add_handler(CallbackQueryHandler(test_speed_callback, pattern="^test_speed$"))
