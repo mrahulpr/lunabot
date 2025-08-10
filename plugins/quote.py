@@ -1,48 +1,91 @@
-from telegram import Update, InputFile
-from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters
-from PIL import Image, ImageDraw, ImageFont
-import io
-from plugins.db import send_error_to_support
+# plugins/ping.py
 
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"  # or custom
+import time
+import asyncio
+import speedtest
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
 
-async def quotely(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        if not update.message.reply_to_message:
-            await update.message.reply_text("❌ You must reply to a message to quote it.")
-            return
-        
-        replied = update.message.reply_to_message
-        text = replied.text or replied.caption or "⚠️ No text found"
-        username = replied.from_user.full_name
+# Ping command
+async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    start_time = time.time()
+    message = await update.message.reply_text("🏓 Pinging...")
+    end_time = time.time()
+    ping_ms = int((end_time - start_time) * 1000)
 
-        # Create image
-        img = Image.new("RGB", (800, 200), color=(255, 255, 255))
-        draw = ImageDraw.Draw(img)
+    keyboard = [
+        [InlineKeyboardButton("🚀 Test Speed", callback_data="test_speed")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-        font = ImageFont.truetype(FONT_PATH, 28)
-        draw.text((30, 40), f"{username}:", font=font, fill=(0, 0, 0))
-        draw.text((30, 90), text, font=font, fill=(50, 50, 50))
+    await message.edit_text(
+        f"✅ Pong!\n📡 Ping: `{ping_ms} ms`",
+        parse_mode="Markdown",
+        reply_markup=reply_markup
+    )
 
-        # Save image to memory
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        img_bytes.seek(0)
+# Callback for speed test
+async def test_speed_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
 
-        await update.message.reply_photo(photo=InputFile(img_bytes, filename="quote.png"))
-    
-    except Exception as e:
-        await send_error_to_support(f"❌ Error in /q: {e}")
-        await update.message.reply_text("⚠️ Failed to generate quote image.")
+    # Initial "testing" message
+    msg = await query.edit_message_text("🚀 Running speed test...\nPlease wait ⏳")
 
-def setup(app):
-    app.add_handler(CommandHandler("q", quotely))
+    # Animation loop while speedtest runs
+    animation_task = asyncio.create_task(animate_loading(context, msg))
 
-def get_info():
+    # Run actual speedtest in separate thread (blocking)
+    loop = asyncio.get_event_loop()
+    results = await loop.run_in_executor(None, run_speed_test)
+
+    # Stop animation
+    animation_task.cancel()
+
+    # Show final results
+    await query.edit_message_text(
+        f"📊 **Speed Test Results**\n"
+        f"🖥 Server: `{results['server']}`\n"
+        f"📡 Ping: `{results['ping']} ms`\n"
+        f"⬇ Download: `{results['download']} Mbps`\n"
+        f"⬆ Upload: `{results['upload']} Mbps`",
+        parse_mode="Markdown"
+    )
+
+# Animation function
+async def animate_loading(context, msg):
+    dots = ["", ".", "..", "..."]
+    i = 0
+    while True:
+        await asyncio.sleep(0.5)
+        try:
+            await msg.edit_text(f"🚀 Running speed test{dots[i % len(dots)]}\nPlease wait ⏳")
+            i += 1
+        except:
+            break
+
+# Actual speed test
+def run_speed_test():
+    st = speedtest.Speedtest()
+    st.get_best_server()
+    download = round(st.download() / 1_000_000, 2)  # Mbps
+    upload = round(st.upload() / 1_000_000, 2)      # Mbps
+    ping = round(st.results.ping, 2)
+    server_name = st.results.server.get("name", "Unknown")
     return {
-        "name": "Quotely Image",
-        "description": "Convert messages to quote-style images using /q"
+        "download": download,
+        "upload": upload,
+        "ping": ping,
+        "server": server_name
     }
 
-async def test():
-    pass  # No DB needed for this one
+# Required plugin functions
+def get_info():
+    return {
+        "name": "Ping & Speedtest",
+        "description": "Checks ping and server's internet speed."
+    }
+
+def setup(app):
+    app.add_handler(CommandHandler("ping", ping_command))
+    app.add_handler(CallbackQueryHandler(test_speed_callback, pattern="^test_speed$"))
