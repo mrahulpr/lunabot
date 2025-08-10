@@ -14,12 +14,12 @@ async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ping_ms = int((end_time - start_time) * 1000)
 
     keyboard = [
-        [InlineKeyboardButton("🚀 Test Speed", callback_data="test_speed")]
+        [InlineKeyboardButton("🚀 Speed Test", callback_data="test_speed")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await message.edit_text(
-        f"✅ *Pong!*\n📡 *Ping: {ping_ms} ms*",
+        f"✅ *Pong!*\n📡 *Ping :* {ping_ms} ms",
         parse_mode="Markdown",
         reply_markup=reply_markup
     )
@@ -45,23 +45,23 @@ async def test_speed_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Show final results
     await query.edit_message_text(
         f"📊 *Speed Test Results*\n\n"
-        f">🖥 Server: `{results['server']}`\n"
-        f">📡 Ping: `{results['ping']} ms`\n"
-        f">⬇ Download: `{results['download']} Mbps`\n"
-        f">⬆ Upload: `{results['upload']} Mbps`",
+        f">• *🖥 Server  : {results['server']}*\n"
+        f">• *📡 Ping    : {results['ping']} ms*\n"
+        f">• *⬇ Download : {results['download']} Mbps*\n"
+        f">• *⬆ Upload   : {results['upload']} Mbps*\n\n"
+        f"[*©️ Webotz*](https://t.me/webotz)",
         parse_mode="MarkdownV2"
     )
 
 
 # Animation function
 async def animate_loading(context, msg):
-    dots = ["•", "••", "•••", "••••"]
+    dots = [".", "..", "...", "...."]
     i = 0
     while True:
         await asyncio.sleep(0.5)
         try:
-            await msg.edit_text(f"🚀 Running <b>speed test</b> {dots[i % len(dots)]}\n\n<b>Please wait </b>⏳")
-            parse_mode=HTML
+            await msg.edit_text(f"🚀 Running *speed test* {dots[i % len(dots)]}\n\n*Please wait *⏳.")
             i += 1
         except:
             break
