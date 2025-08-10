@@ -45,11 +45,10 @@ async def test_speed_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Show final results
     await query.edit_message_text(
         f"📊 *Speed Test Results*\n\n"
-        f">• *🖥 Server  : United Kingdom*\n"
+        f">• *🖥 Server  : {results['server_name']}*\n"
         f">• *📡 Ping    : {results['ping']} ms*\n"
         f">• *⬇ Download : {results['download']} Mbps*\n"
-        f">• *⬆ Upload   : {results['upload']} Mbps*\n\n"
-        f"[*©️ Webotz*](https://t.me/webotz)",
+        f">• *⬆ Upload   : {results['upload']} Mbps*\n",
         parse_mode="MarkdownV2"
     )
 
