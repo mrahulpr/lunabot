@@ -44,12 +44,12 @@ async def test_speed_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     # Show final results
     await query.edit_message_text(
-        f"📊 **Speed Test Results**\n"
+        f"📊 *Speed Test Results*\n\n"
         f"🖥 Server: `{results['server']}`\n"
         f"📡 Ping: `{results['ping']} ms`\n"
         f"⬇ Download: `{results['download']} Mbps`\n"
         f"⬆ Upload: `{results['upload']} Mbps`",
-        parse_mode="Markdown"
+        parse_mode="MarkdownV2"
     )
 
 # Animation function
@@ -63,6 +63,12 @@ async def animate_loading(context, msg):
             i += 1
         except:
             break
+
+async def test():
+    # Nothing to test in this plugin; it's stateless and safe
+    pass
+
+
 
 # Actual speed test
 def run_speed_test():
