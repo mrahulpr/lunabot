@@ -1,10 +1,11 @@
 import random
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, MessageHandler, filters, CommandHandler, CallbackQueryHandler
 from plugins.db import send_error_to_support, db
 
 # Emoji sets
 EMOJIS = ["😂", "👍", "🔥", "😅", "❤️", "🤔", "🥳", "💯", "👀", "😎"]
+
 
 async def is_admin(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int) -> bool:
     """Check if user is admin in group"""
@@ -15,6 +16,7 @@ async def is_admin(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: in
         return False
 
 
+# --- Main reaction handler ---
 async def react_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not update.message or not update.message.text:
@@ -44,43 +46,82 @@ async def react_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             emoji = random.choice(EMOJIS)
 
+        # ✅ FIX: use list of strings, not dicts
         await context.bot.setMessageReaction(
             chat_id=chat_id,
             message_id=update.message.message_id,
-            reaction=[{"type": "emoji", "emoji": emoji}],
+            reaction=[emoji],
         )
 
     except Exception as e:
         await send_error_to_support(f"⚠️ Error in react plugin:\n{e}")
 
 
-# --- Admin toggle command ---
-async def toggle_reacts(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# --- Command to manage reacts with inline buttons ---
+async def reacts_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        chat = update.effective_chat
-        user = update.effective_user
+        chat_id = update.effective_chat.id
+        user_id = update.effective_user.id
 
-        if not await is_admin(context, chat.id, user.id):
-            return await update.message.reply_text("⚠️ Only admins can toggle reactions.")
+        if not await is_admin(context, chat_id, user_id):
+            return await update.message.reply_text("⚠️ Only admins can manage reactions.")
 
-        chat_settings = await db.reacts.find_one({"chat_id": chat.id})
+        chat_settings = await db.reacts.find_one({"chat_id": chat_id})
         enabled = chat_settings.get("enabled", True) if chat_settings else True
-        new_status = not enabled
+
+        text = f"⚙️ Reactions are currently {'✅ enabled' if enabled else '❌ disabled'}."
+        buttons = [
+            [
+                InlineKeyboardButton("✅ Enable", callback_data="reacts_enable"),
+                InlineKeyboardButton("❌ Disable", callback_data="reacts_disable"),
+            ]
+        ]
+
+        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(buttons))
+
+    except Exception as e:
+        await send_error_to_support(f"⚠️ Error in reacts_command:\n{e}")
+
+
+# --- Callback handler for inline toggle ---
+async def reacts_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        query = update.callback_query
+        await query.answer()
+        chat_id = query.message.chat.id
+        user_id = query.from_user.id
+
+        if not await is_admin(context, chat_id, user_id):
+            return await query.answer("⚠️ Only admins can toggle reactions.", show_alert=True)
+
+        if query.data == "reacts_enable":
+            new_status = True
+        elif query.data == "reacts_disable":
+            new_status = False
+        else:
+            return
 
         await db.reacts.update_one(
-            {"chat_id": chat.id},
+            {"chat_id": chat_id},
             {"$set": {"enabled": new_status}},
             upsert=True
         )
 
-        await update.message.reply_text(
-            f"✅ Reactions are now {'enabled' if new_status else 'disabled'} in this chat."
-        )
+        text = f"✅ Reactions are now {'enabled' if new_status else 'disabled'}."
+        buttons = [
+            [
+                InlineKeyboardButton("✅ Enable", callback_data="reacts_enable"),
+                InlineKeyboardButton("❌ Disable", callback_data="reacts_disable"),
+            ]
+        ]
+
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(buttons))
 
     except Exception as e:
-        await send_error_to_support(f"⚠️ Error in toggle_reacts:\n{e}")
+        await send_error_to_support(f"⚠️ Error in reacts_callback:\n{e}")
 
 
+# --- Info ---
 def get_info():
     return {
         "name": "React Plugin",
@@ -88,10 +129,13 @@ def get_info():
     }
 
 
+# --- Setup ---
 def setup(app):
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, react_message))
-    app.add_handler(CommandHandler("reacts", toggle_reacts))
+    app.add_handler(CommandHandler("reacts", reacts_command))
+    app.add_handler(CallbackQueryHandler(reacts_callback, pattern=r"^reacts_"))
 
 
+# --- Test ---
 async def test():
     return "✅ React plugin loaded successfully"
