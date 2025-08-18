@@ -34,13 +34,13 @@ async def react_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Context-aware reactions
         if any(word in text for word in ["hi", "hello", "hey"]):
-            emoji = "👋"
+            emoji = "😆"
         elif any(word in text for word in ["lol", "lmao", "haha", "rofl"]):
-            emoji = "😂"
+            emoji = "😆"
         elif any(word in text for word in ["bye", "good night", "gn"]):
-            emoji = random.choice(["👋", "😴"])
+            emoji = random.choice(["😆", "👍"])
         elif any(word in text for word in ["love", "❤", "❤️"]):
-            emoji = "❤️"
+            emoji = "💔"
         elif "?" in text:
             emoji = "🤔"
         else:
