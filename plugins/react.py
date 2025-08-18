@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes, MessageHandler, filters, CommandHandler, 
 from plugins.db import send_error_to_support, db
 
 # Default emojis for reactions
-EMOJIS = ["😂", "👍", "🔥", "😅", "❤️", "🤔", "🥳", "💯", "👀", "😎"]
+EMOJIS = ["👍","👎","❤️","😆","😯","😢","😡","🎉","🤯","😱","👏","🤔","🤩","🤮"]
 
 # --- Admin helper ---
 async def is_admin(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int) -> bool:
