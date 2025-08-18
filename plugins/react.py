@@ -4,7 +4,8 @@ from telegram.ext import ContextTypes, MessageHandler, filters, CommandHandler, 
 from plugins.db import send_error_to_support, db
 
 # Default emojis for reactions
-EMOJIS = ["👍","👎","❤️","😆","😯","😢","😡","🎉","🤯","😱","👏","🤔","🤩","🤮"]
+
+EMOJIS = ["👍", "👎", "❤️", "🔥", "🥰", "👏", "😁", "🤔", "🤯", "😱", "😢", "🎉", "🤩", "🤮", "💩", "🙏"]
 
 # --- Admin helper ---
 async def is_admin(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int) -> bool:
@@ -34,13 +35,13 @@ async def react_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Context-aware reactions
         if any(word in text for word in ["hi", "hello", "hey"]):
-            emoji = "😆"
+            emoji = "😁"
         elif any(word in text for word in ["lol", "lmao", "haha", "rofl"]):
-            emoji = "😆"
+            emoji = "😁"
         elif any(word in text for word in ["bye", "good night", "gn"]):
-            emoji = random.choice(["😆", "👍"])
+            emoji = random.choice(["😁", "👍"])
         elif any(word in text for word in ["love", "❤", "❤️"]):
-            emoji = "💔"
+            emoji = "❤️"
         elif "?" in text:
             emoji = "🤔"
         else:
