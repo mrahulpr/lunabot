@@ -30,7 +30,7 @@ async def test_speed_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.answer()
 
     # Initial "testing" message
-    msg = await query.edit_message_text("🚀 Running speed test...\nPlease wait ⏳")
+    msg = await query.edit_message_text("• 🚀 Running speed test...\n• Please wait ⏳")
 
     # Animation loop while speedtest runs
     animation_task = asyncio.create_task(animate_loading(context, msg))
@@ -45,11 +45,10 @@ async def test_speed_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Show final results
     await query.edit_message_text(
         f"📊 *Speed Test Results*\n\n"
-        f">• *🖥 Server  : {results['server']}*\n"
-        f">• *📡 Ping    : {results['ping']} ms*\n"
-        f">• *⬇ Download : {results['download']} Mbps*\n"
-        f">• *⬆ Upload   : {results['upload']} Mbps*\n\n"
-        f"[*©️ Webotz*](https://t.me/webotz)",
+        f">*🖥 Server  :* `{results['server']}`\n"
+        f">*📡 Ping    :* `{results['ping']} ms`\n"
+        f">*⬇ Download :* `{results['download']} Mbps`\n"
+        f">*⬆ Upload   :* `{results['upload']} Mbps`",
         parse_mode="MarkdownV2"
     )
 
@@ -61,7 +60,7 @@ async def animate_loading(context, msg):
     while True:
         await asyncio.sleep(0.5)
         try:
-            await msg.edit_text(f"🚀 Running *speed test* {dots[i % len(dots)]}\n\n*Please wait *⏳.")
+            await msg.edit_text(f"• 🚀 Running speed test {dots[i % len(dots)]}\n• Please wait ⏳.")
             i += 1
         except:
             break

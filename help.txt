@@ -1,12 +1,9 @@
 *📖 Help Menu*
 
-> *Plugins For All*  
 */start* \- Launch the bot\. 
-*/help* \- Show help menu\.  
+*/help* \- Show help menu\.
+*/ping* \- To get information about Speed\.
 */hack* \- To make an animation of hacking someone\.  
-*/id* \- To Get id of a Chat\.  
-
-> *Plugins For Owner*  
-*He is not selfish 😂\.*
+*/id* \- To Get id of a Chat\.
 
 [*©️ Webotz*](https://t.me/webotz)
