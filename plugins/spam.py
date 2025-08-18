@@ -235,7 +235,18 @@ async def test():
 
 
 # Setup
+
 def setup(app):
-    app.add_handler(CommandHandler("sspam", sspam_command))
-    app.add_handler(CallbackQueryHandler(sspam_buttons, pattern=r"^sspam_"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, sspam_delay_input))
+    conv = ConversationHandler(
+        entry_points=[CommandHandler("sspam", sspam)],  # ✅ correct name
+        states={
+            WAITING_DELAY: [
+                CallbackQueryHandler(sspam_button, pattern="^sspam_"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, sspam_delay),
+            ]
+        },
+        fallbacks=[CommandHandler("cancel", sspam_cancel)],
+        name="sspam_conv",
+        persistent=False,
+    )
+    app.add_handler(conv)
