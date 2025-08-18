@@ -154,16 +154,13 @@ def setup(app):
         states={
             WAITING_DELAY: [
                 CallbackQueryHandler(sspam_button, pattern="^sspam_"),
-                # Safety filter: only the user who started /sspam triggers this
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    sspam_delay
-                ),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, sspam_delay),
             ]
         },
         fallbacks=[CommandHandler("cancel", sspam_cancel)],
         name="sspam_conv",
         persistent=False,
+        per_message=True  # suppress PTB warning
     )
     app.add_handler(conv)
 
