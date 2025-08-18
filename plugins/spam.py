@@ -1,329 +1,120 @@
-import os
 import traceback
-import asyncio
-from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup, Sticker
-from telegram.ext import (
-    CommandHandler, CallbackQueryHandler, MessageHandler,
-    ConversationHandler, ContextTypes, filters
-)
+import os
+import random
+from telegram import Update, Bot, ReactionTypeEmoji, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import MessageHandler, CommandHandler, CallbackQueryHandler, ContextTypes, filters
 from plugins.db import db  # MongoDB instance
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 SUPPORT_CHAT_ID = os.getenv("SUPPORT_CHAT_ID")
 
-# --- States ---
-WAITING_DELAY = 1
+SUPPORTED_REACTIONS = [
+    "👍","👎","❤","🔥","🥰","👏","😁","🤔","🤯","😱",
+    "🤬","😢","🎉","🤩","🤮","💩","🙏","👌","🤡","💔","🤣"
+]
 
-# --- Error logging ---
-async def send_error_to_support(error: Exception, where="sspam_plugin"):
+async def send_error_to_support(error: Exception, where="react_plugin"):
     if not BOT_TOKEN or not SUPPORT_CHAT_ID:
         return
     bot = Bot(BOT_TOKEN)
     try:
         await bot.send_message(
             chat_id=SUPPORT_CHAT_ID,
-            text=(
-                f"❗️ *Plugin Error: {where}*\n"
-                f"`{str(error)}`\n\n"
-                f"```{traceback.format_exc()}```"
-            )[:4000],
+            text=(f"❗️ *Plugin Error: {where}*\n"
+                  f"`{str(error)}`\n\n"
+                  f"```{traceback.format_exc()}```")[:4000],
             parse_mode="MarkdownV2"
         )
     except Exception:
         pass
 
-# --- Start command ---
-async def sspam(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def reaction_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        if not update.message.reply_to_message or not update.message.reply_to_message.sticker:
-            await update.message.reply_text("⚠️ Reply to a sticker with /sspam to use this command.")
-            return ConversationHandler.END
+        chat = update.effective_chat
+        if chat.type == "private":
+            await update.message.reply_text("🚫 This command works in groups only.")
+            return
 
-        sticker: Sticker = update.message.reply_to_message.sticker
-        set_name = sticker.set_name
-        if not set_name:
-            await update.message.reply_text("⚠️ This sticker is not from a sticker pack.")
-            return ConversationHandler.END
+        user = update.effective_user
+        member = await chat.get_member(user.id)
+        if member.status not in ("administrator", "creator"):
+            await update.message.reply_text("🚫 Only admins can configure reactions.")
+            return
 
-        # Save info in user_data
-        context.user_data["sspam_set"] = set_name
-        context.user_data["sspam_chat"] = update.effective_chat.id
-        context.user_data["sspam_user"] = update.effective_user.id
+        chat_settings = await db.reactions.find_one({"chat_id": chat.id})
+        enabled = chat_settings.get("enabled", False) if chat_settings else False
 
-        keyboard = InlineKeyboardMarkup(
-            [[
-                InlineKeyboardButton("▶️ Start", callback_data="sspam_start"),
-                InlineKeyboardButton("❌ Cancel", callback_data="sspam_cancel")
-            ]]
-        )
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("✅ Enable", callback_data=f"react_enable:{chat.id}"),
+            InlineKeyboardButton("❌ Disable", callback_data=f"react_disable:{chat.id}")
+        ]])
 
         await update.message.reply_text(
-            f"🎭 Sticker Spam ready for pack: `{set_name}`\n\nChoose an option:",
-            reply_markup=keyboard,
-            parse_mode="Markdown"
+            f"🎭 Reactions are currently: {'✅ ON' if enabled else '❌ OFF'}",
+            reply_markup=keyboard
         )
-        return WAITING_DELAY
-
     except Exception as e:
-        await send_error_to_support(e, "sspam_command")
-        return ConversationHandler.END
+        await send_error_to_support(e, "reaction_settings")
 
-# --- Handle buttons ---
-async def sspam_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def toggle_react(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         query = update.callback_query
         await query.answer()
-
-        if query.data == "sspam_cancel":
-            await query.edit_message_text("❌ Spam cancelled.")
-            return ConversationHandler.END
-
-        if query.data == "sspam_start":
-            await query.edit_message_text("⏳ Send me the delay (in seconds) between stickers:")
-            return WAITING_DELAY
-
-    except Exception as e:
-        await send_error_to_support(e, "sspam_button")
-        return ConversationHandler.END
-
-# --- Handle delay input ---
-async def sspam_delay(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        user_id = context.user_data.get("sspam_user")
-        chat_id = context.user_data.get("sspam_chat")
-
-        # Only accept input from the same user in the same chat
-        if update.effective_user.id != user_id or update.effective_chat.id != chat_id:
-            return  # ignore other messages
-
-        # Validate delay
-        try:
-            delay = float(update.message.text.strip())
-            if delay <= 0:
-                raise ValueError
-        except ValueError:
-            await update.message.reply_text("⚠️ Please send a valid positive number (seconds).")
-            return WAITING_DELAY
-
-        # Delete user's delay message
-        try:
-            await update.message.delete()
-        except Exception:
-            pass
-
-        set_name = context.user_data.get("sspam_set")
-        if not set_name:
-            await update.message.reply_text("⚠️ Sticker pack missing. Please try again.")
-            return ConversationHandler.END
-
-        bot: Bot = context.bot
-        stickers = await bot.get_sticker_set(set_name)
-
-        await bot.send_message(chat_id, f"🚀 Starting spam with {delay} sec delay ({len(stickers.stickers)} stickers)…")
-
-        for stk in stickers.stickers:
-            try:
-                await bot.send_sticker(chat_id, stk.file_id)
-                await asyncio.sleep(delay)
-            except Exception:
-                continue
-
-        await bot.send_message(chat_id, "✅ Sticker spam completed.")
-        return ConversationHandler.END
-
-    except Exception as e:
-        await send_error_to_support(e, "sspam_delay")
-        return ConversationHandler.END
-
-# --- Cancel handler ---
-async def sspam_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Spam cancelled.")
-    return ConversationHandler.END
-
-# --- Plugin Info ---
-def get_info():
-    return {
-        "name": "Sticker Spam 🎭",
-        "description": "Reply to a sticker with /sspam, confirm via button, then spam the whole pack."
-    }
-
-# --- Setup ---
-def setup(app):
-    conv = ConversationHandler(
-        entry_points=[CommandHandler("sspam", sspam)],
-        states={
-            WAITING_DELAY: [
-                CallbackQueryHandler(sspam_button, pattern="^sspam_"),
-                # Safety filter: only the user who started /sspam triggers this
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    sspam_delay
-                ),
-            ]
-        },
-        fallbacks=[CommandHandler("cancel", sspam_cancel)],
-        name="sspam_conv",
-        persistent=False,
-    )
-    app.add_handler(conv)
-
-# --- Test ---
-async def test():
-    return "✅ Sticker spam plugin loaded successfully"        user = update.effective_user
-        chat_id = context.user_data.get("sspam_chat")
-
-        # ensure only same user who started can send delay
-        if update.effective_chat.id != chat_id or update.effective_user.id != user.id:
-            return WAITING_DELAY  # ignore others
-
-        try:
-            delay = float(update.message.text.strip())
-            if delay <= 0:
-                raise ValueError
-        except ValueError:
-            await update.message.reply_text("⚠️ Please send a valid positive number (seconds).")
-            return WAITING_DELAY
-
-        # Delete user input message
-        try:
-            await update.message.delete()
-        except Exception:
-            pass
-
-        set_name = context.user_data.get("sspam_set")
-        if not set_name:
-            await update.message.reply_text("⚠️ Sticker pack missing. Please try again.")
-            return ConversationHandler.END
-
-        bot: Bot = context.bot
-        stickers = await bot.get_sticker_set(set_name)
-
-        for stk in stickers.stickers:
-            try:
-                await bot.send_sticker(chat_id, stk.file_id)
-                await asyncio.sleep(delay)
-            except Exception:
-                continue
-
-        await bot.send_message(chat_id, "✅ Sticker spam completed.")
-        return ConversationHandler.END
-
-    except Exception as e:
-        await send_error_to_support(e, "sspam_delay")
-        return ConversationHandler.END
-
-
-# --- Cancel handler ---
-async def sspam_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Spam cancelled.")
-    return ConversationHandler.END
-
-
-# --- Plugin Info ---
-def get_info():
-    return {
-        "name": "Sticker Spam 🎭",
-        "description": "Reply to a sticker with /sspam, confirm via button, then spam the whole pack."
-    }
-
-
-# --- Setup ---
-def setup(app):
-    conv = ConversationHandler(
-        entry_points=[CommandHandler("sspam", sspam)],
-        states={
-            WAITING_DELAY: [
-                CallbackQueryHandler(sspam_button, pattern="^sspam_"),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, sspam_delay),
-            ]
-        },
-        fallbacks=[CommandHandler("cancel", sspam_cancel)],
-        name="sspam_conv",
-        persistent=False,
-    )
-    app.add_handler(conv)
-
-
-# --- Test ---
-async def test():
-    return "✅ Sticker spam plugin loaded successfully"
-# Step 3: Handle delay input from user
-async def sspam_delay_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        user_id = update.message.from_user.id
-        if user_id not in pending_delays:
-            return  # ignore unrelated messages
-
-        chat_id, set_name = pending_delays[user_id]
-
-        # Only accept input in the same chat
-        if update.message.chat_id != chat_id:
+        chat = update.effective_chat
+        user = update.effective_user
+        member = await chat.get_member(user.id)
+        if member.status not in ("administrator", "creator"):
+            await query.edit_message_text("🚫 Only admins can toggle reactions.")
             return
 
-        try:
-            delay = float(update.message.text.strip())
-            if delay < 0:
-                raise ValueError
-        except ValueError:
-            await update.message.reply_text("⚠️ Please enter a valid positive number.")
-            return
+        action, chat_id = query.data.split(":")
+        chat_id = int(chat_id)
+        new_state = True if action == "react_enable" else False
 
-        # delete user input message
-        try:
-            await update.message.delete()
-        except Exception:
-            pass
+        await db.reactions.update_one({"chat_id": chat_id}, {"$set": {"enabled": new_state}}, upsert=True)
 
-        del pending_delays[user_id]
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("✅ Enable", callback_data=f"react_enable:{chat_id}"),
+            InlineKeyboardButton("❌ Disable", callback_data=f"react_disable:{chat_id}")
+        ]])
 
-        # fetch sticker set
-        try:
-            stickerset = await context.bot.get_sticker_set(set_name)
-        except Exception as e:
-            await context.bot.send_message(chat_id, "⚠️ Could not fetch sticker pack.")
-            await send_error_to_support(e, "sspam_fetch")
-            return
-
-        await context.bot.send_message(
-            chat_id,
-            f"🚀 Starting spam with {delay} sec delay ({len(stickerset.stickers)} stickers)…"
+        await query.edit_message_text(
+            f"🎭 Reactions are now: {'✅ ON' if new_state else '❌ OFF'}",
+            reply_markup=keyboard
         )
-
-        # spam stickers with delay
-        for sticker in stickerset.stickers:
-            try:
-                await context.bot.send_sticker(chat_id=chat_id, sticker=sticker.file_id)
-                await asyncio.sleep(delay)
-            except Exception as e:
-                await send_error_to_support(e, "sspam_send")
     except Exception as e:
-        await send_error_to_support(e, "sspam_delay_input")
+        await send_error_to_support(e, "toggle_react")
 
+async def react_to_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if not update.message:
+            return
 
-# Plugin Info
+        chat_id = update.effective_chat.id
+        # ignore messages from spam plugin user input
+        if context.user_data.get("sspam_user") == update.effective_user.id and \
+           context.user_data.get("sspam_chat") == chat_id:
+            return
+
+        chat_settings = await db.reactions.find_one({"chat_id": chat_id})
+        if not chat_settings or not chat_settings.get("enabled", False):
+            return
+
+        emoji = random.choice(SUPPORTED_REACTIONS)
+        await update.message.set_reaction([ReactionTypeEmoji(emoji=emoji)])
+    except Exception as e:
+        await send_error_to_support(e, "react_to_message")
+
 def get_info():
     return {
-        "name": "Sticker Spam Plugin 🎭",
-        "description": "Reply to a sticker with /sspam → confirm → enter delay → bot spams all stickers."
+        "name": "Reaction Plugin 🎭",
+        "description": "Auto-reacts to all messages, toggleable by admins with inline buttons."
     }
+
+def setup(app):
+    app.add_handler(CommandHandler("reactsettings", reaction_settings))
+    app.add_handler(CallbackQueryHandler(toggle_react, pattern=r"^react_"))
+    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, react_to_message))
 
 async def test():
     return "✅ React plugin loaded successfully"
-
-
-# Setup
-
-def setup(app):
-    conv = ConversationHandler(
-        entry_points=[CommandHandler("sspam", sspam)],  # ✅ correct name
-        states={
-            WAITING_DELAY: [
-                CallbackQueryHandler(sspam_button, pattern="^sspam_"),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, sspam_delay),
-            ]
-        },
-        fallbacks=[CommandHandler("cancel", sspam_cancel)],
-        name="sspam_conv",
-        persistent=False,
-    )
-    app.add_handler(conv)
