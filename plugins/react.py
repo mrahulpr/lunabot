@@ -1,5 +1,5 @@
-import os
 import traceback
+import os
 import random
 from telegram import Update, Bot, ReactionTypeEmoji, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import MessageHandler, CommandHandler, CallbackQueryHandler, ContextTypes, filters
@@ -28,7 +28,7 @@ async def send_error_to_support(error: Exception, where="react_plugin"):
     except Exception:
         pass
 
-# --- Command ---
+# --- Reaction settings ---
 async def reaction_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         chat = update.effective_chat
@@ -57,7 +57,7 @@ async def reaction_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error_to_support(e, "reaction_settings")
 
-# --- Inline button ---
+# --- Toggle inline button ---
 async def toggle_react(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         query = update.callback_query
@@ -87,17 +87,24 @@ async def toggle_react(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error_to_support(e, "toggle_react")
 
-# --- React to messages ---
+# --- Auto-react ---
 async def react_to_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not update.message:
             return
 
-        # Safety: ignore messages from user currently using /sspam
-        if context.user_data.get("sspam_user") == update.effective_user.id:
+        chat_id = update.effective_chat.id
+        user_id = update.effective_user.id
+
+        # Ignore users currently using /sspam
+        ignore_spam = any(
+            getattr(u, "user_data", {}).get("sspam_user") == user_id and
+            getattr(u, "user_data", {}).get("sspam_chat") == chat_id
+            for u in context.application.handlers[filters.ALL]
+        )
+        if ignore_spam:
             return
 
-        chat_id = update.effective_chat.id
         chat_settings = await db.reactions.find_one({"chat_id": chat_id})
         if not chat_settings or not chat_settings.get("enabled", False):
             return
@@ -107,12 +114,6 @@ async def react_to_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error_to_support(e, "react_to_message")
 
-# --- Setup ---
-def setup(app):
-    app.add_handler(CommandHandler("reactsettings", reaction_settings))
-    app.add_handler(CallbackQueryHandler(toggle_react, pattern=r"^react_"))
-    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, react_to_message))
-
 # --- Info ---
 def get_info():
     return {
@@ -120,5 +121,12 @@ def get_info():
         "description": "Auto-reacts to all messages, toggleable by admins with inline buttons."
     }
 
+# --- Setup ---
+def setup(app):
+    app.add_handler(CommandHandler("reactsettings", reaction_settings))
+    app.add_handler(CallbackQueryHandler(toggle_react, pattern=r"^react_"))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, react_to_message))
+
+# --- Test ---
 async def test():
     return "✅ React plugin loaded successfully"
