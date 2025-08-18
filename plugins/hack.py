@@ -92,7 +92,7 @@ async def hack(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(
             "> Target compromised\\. Click below to access the panel\\.",
             reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("🕵️ View Hacked Panel", url="https://example.com/hacked")]]
+                [[InlineKeyboardButton("🕵️ View Hacked File", url="https://t.me/c/1478246163/16150/16152")]]
             ),
             parse_mode="MarkdownV2"
         )
