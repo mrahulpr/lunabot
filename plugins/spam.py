@@ -32,6 +32,19 @@ async def send_error_to_support(error: Exception, where="sspam_plugin"):
     except Exception:
         pass
 
+# --- Spam loop as separate async task ---
+async def spam_stickers(chat_id, stickers, delay, bot):
+    try:
+        for stk in stickers:
+            try:
+                await bot.send_sticker(chat_id, stk.file_id)
+                await asyncio.sleep(delay)
+            except Exception:
+                continue
+        await bot.send_message(chat_id, "✅ Sticker spam completed.")
+    except Exception as e:
+        await send_error_to_support(e, "sspam_background")
+
 # --- Start command ---
 async def sspam(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -119,16 +132,10 @@ async def sspam_delay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bot: Bot = context.bot
         stickers = await bot.get_sticker_set(set_name)
 
-        await bot.send_message(chat_id, f"🚀 Starting spam with {delay} sec delay ({len(stickers.stickers)} stickers)…")
+        # Start background task for spam
+        asyncio.create_task(spam_stickers(chat_id, stickers.stickers, delay, bot))
+        await bot.send_message(chat_id, f"🚀 Sticker spam started in background ({len(stickers.stickers)} stickers)…")
 
-        for stk in stickers.stickers:
-            try:
-                await bot.send_sticker(chat_id, stk.file_id)
-                await asyncio.sleep(delay)
-            except Exception:
-                continue
-
-        await bot.send_message(chat_id, "✅ Sticker spam completed.")
         return ConversationHandler.END
 
     except Exception as e:
@@ -144,7 +151,7 @@ async def sspam_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def get_info():
     return {
         "name": "Sticker Spam 🎭",
-        "description": "Reply to a sticker with /sspam, confirm via button, then spam the whole pack."
+        "description": "Reply to a sticker with /sspam, confirm via button, then spam the whole pack in background."
     }
 
 # --- Setup ---
