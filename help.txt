@@ -5,6 +5,6 @@
 */ping* \- To get information about Speed\.
 */hack* \- To make an hack someone\.  
 */id* \- To Get id of a Chat\.
-*/reactsettings* \- Auto Reaction to Messages\.
+*/reacts* \- Auto Reaction to Messages\.
 
 [*©️ Webotz*](https://t.me/webotz)
