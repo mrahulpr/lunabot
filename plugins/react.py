@@ -18,6 +18,7 @@ async def is_admin(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: in
 
 # --- Main reaction handler ---
 async def react_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
     try:
         if chat.type == "private":
             await update.message.reply_text("🚫 This command works in groups only.")
