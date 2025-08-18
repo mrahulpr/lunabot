@@ -149,8 +149,7 @@ def get_info():
 def setup(app):
     app.add_handler(CommandHandler("reactsettings", reaction_settings))
     app.add_handler(CallbackQueryHandler(toggle_react, pattern=r"^react_"))
-    app.add_handler(MessageHandler(filters.ALL, react_to_message))
-
+    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, react_to_message))
 # --- Test ---
 async def test():
     return "✅ React plugin loaded successfully"
