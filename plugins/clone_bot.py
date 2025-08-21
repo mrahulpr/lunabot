@@ -448,7 +448,7 @@ async def list_clone_bots(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if len(clone_bots) > 10:
             text += f"\\.\\.\\. and {len(clone_bots) - 10} more"
         
-        await update.message.reply_text(text, parse_mode="MarkdownV2")
+        await update.message.reply_text(text, parse_mode="Markdown")
         
     except Exception as e:
         await send_error_to_support(
