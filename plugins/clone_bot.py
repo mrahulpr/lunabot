@@ -488,13 +488,6 @@ def get_info() -> dict:
             "/listclones - List all clone bots (admin only)"
         ]
     }
-            
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "message": f"❌ Failed to create clone bot: {str(e)}"
-        }
     
     async def _create_clone_main_py(self, bot_dir: str, owner_id: int, bot_username: str):
         """
