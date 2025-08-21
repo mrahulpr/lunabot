@@ -77,7 +77,7 @@ class CloneBotManager:
             env_content = f"""BOT_TOKEN={bot_token}
 MONGO_URI={os.getenv('MONGO_URI')}
 SUPPORT_CHAT_ID={os.getenv('SUPPORT_CHAT_ID')}
-ADMIN_IDS={user_id}
+OWNER_ID={os.getenv('OWNER_ID')}
 CLONE_OWNER_ID={user_id}
 """
             with open(f"{bot_dir}/.env", "w") as f:
@@ -411,7 +411,7 @@ async def list_clone_bots(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         user = update.effective_user
         
         # Simple admin check
-        ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()]
+        OWNER_ID = [int(x) for x in OWNER_ID", "").split(",") if x.strip()]
         
         if user.id not in ADMIN_IDS:
             await update.message.reply_text("❌ You don't have permission to use this command.")
