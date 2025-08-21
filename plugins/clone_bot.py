@@ -25,6 +25,7 @@ class CloneBotManager:
         """
         Create a clone bot instance for a user
         """
+        user_id = update.effective_user.id
         try:
             # Validate the bot token by creating a Bot instance
             test_bot = Bot(token=bot_token)
@@ -78,7 +79,6 @@ class CloneBotManager:
             shutil.copytree(f"{source_dir}/plugins", f"{bot_dir}/plugins")
             
             # Create .env file for clone bot
-            user_id = update.effective_user.id
             env_content = f"""BOT_TOKEN={bot_token}
 MONGO_URI={os.getenv('MONGO_URI')}
 SUPPORT_CHAT_ID={os.getenv('SUPPORT_CHAT_ID')}
