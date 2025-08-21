@@ -86,9 +86,9 @@ async def get_user_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         user = update.effective_user
         
         # Simple admin check - you can modify this based on your needs
-        ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()]
+        OWNER_ID = [int(x) for x in os.getenv("OWNER_ID", "").split(",") if x.strip()]
         
-        if user.id not in ADMIN_IDS:
+        if user.id not in OWNER_ID:
             await update.message.reply_text("❌ You don't have permission to use this command.")
             return
             
