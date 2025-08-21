@@ -411,7 +411,7 @@ async def list_clone_bots(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         user = update.effective_user
         
         # Simple admin check
-        OWNER_ID = [int(x) for x in OWNER_ID", "").split(",") if x.strip()]
+        OWNER_ID = [int(x.strip()) for x in os.getenv("OWNER_ID", "").split(",") if x.strip()]
         
         if user.id not in ADMIN_IDS:
             await update.message.reply_text("❌ You don't have permission to use this command.")
